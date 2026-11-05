@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
 <style>
-/* Layout: 單欄報告 — 全國趨勢摘要 → 縣市×年度熱度表 → 點選縣市看細節 */
+/* Layout: 分頁報告 — 頁首 + 分頁列；政策檢視 → 家外場域 → 縣市人數 → 期間變化 */
 :root{
   --bg:#f6f8fb; --surface:#ffffff; --fg:#17202c; --fg2:#4a5566; --muted:#7a8494; --line:#dde3ec;
   --accent:#1c5cab; --warn-bg:#fff6e0; --warn-fg:#7a5300; --male:#2a78d6; --female:#c2410c;
@@ -83,6 +83,41 @@ select{font:inherit;font-size:14px;padding:3px 6px;border:1px solid var(--line);
 .chip:has(input:checked){color:var(--fg);border-color:var(--fg2);font-weight:500}
 label.chip:not(:has(input:checked)) i{background:var(--line)!important}
 .unitbar{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.head-top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.theme-seg button{font-size:12.5px;padding:4px 10px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding-top:6px}
+.tabs button{font:inherit;font-size:14.5px;background:transparent;border:0;border-bottom:3px solid transparent;color:var(--fg2);padding:8px 12px 9px;cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:700}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.page{display:flex;flex-direction:column;gap:24px}
+.ph{font-family:var(--font-display);font-size:24px;line-height:1.35;margin:2px 0 0;text-wrap:balance}
+.lead{color:var(--fg2);margin:8px 0 0;max-width:68ch;font-size:15.5px}
+.ps{font-size:16px;margin:8px 0 0}
+.body{margin:0;max-width:68ch;color:var(--fg)}
+ul.body{padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line);margin-left:6px}
+.tl li{display:grid;grid-template-columns:136px minmax(0,1fr);gap:12px;padding:8px 0 8px 16px;position:relative}
+.tl li::before{content:"";position:absolute;left:-6px;top:15px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.tl time{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:2px}
+.tl div{max-width:68ch}
+@media (max-width:560px){.tl li{grid-template-columns:1fr;gap:2px}}
+.sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+.side{border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-width:0}
+.side-h{font-weight:700;margin-bottom:6px}
+.side ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+
+.knots{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.knots>div{background:var(--bg);border-radius:8px;padding:12px 14px;min-width:0}
+.knots p{margin:4px 0 0;font-size:14px;color:var(--fg2)}
+.caveats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.caveats>div{background:var(--warn-bg);color:var(--warn-fg);border-radius:8px;padding:10px 12px;font-size:13.5px;min-width:0}
+.opinion{border-style:dashed;border-width:1.5px}
+.op-tag{align-self:flex-start;font-size:12px;letter-spacing:.08em;color:var(--fg2);border:1px solid var(--fg2);border-radius:999px;padding:1px 10px}
+.srcs{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:4px;font-size:13.5px}
+.srcs a{color:var(--accent)}
+.fn{font-size:10.5px;margin-left:1px}.fn a{color:var(--accent);text-decoration:none}.fn a:hover{text-decoration:underline}
+.nosrc{font-size:11px;color:var(--warn-fg);background:var(--warn-bg);border-radius:4px;padding:0 5px;margin-left:4px;white-space:nowrap}
+
 svg text{font-family:var(--font-body)}
 .src{font-size:12.5px;color:var(--muted)}
 @media (max-width:520px){.legend{margin-left:0}}
@@ -90,95 +125,122 @@ svg text{font-family:var(--font-body)}
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">兒童及少年保護｜受虐人數｜民國104–113年（2015–2024）</div>
-    <h1>各縣市兒少受虐人數，十年一覽</h1>
-    <p class="sub">全國 22 縣市逐年受虐兒童少年人數。顏色越深代表人數越多；可切換成「各縣市自身比較」看每個縣市自己的高低起伏。下方折線圖可自選縣市疊在一起比較（預設六都）；「男女與原住民」分頁則看單一縣市的細項，點熱度表任一列也會切換到該縣市。</p>
-  </header>
-
-  <section class="summary" id="summary"></section>
-
-  <div class="note">注意：105→106 年（2016→2017）全國人數從 9,461 人降到 4,135 人，107→108 年（2018→2019）又回升到 11,113 人。原始檔沒有說明原因，106–107 年可能與統計口徑或通報制度調整有關，跨越這兩年比較時請保守解讀。表中這兩年以虛線框標示。</div>
-
-  <div class="controls unitbar">
-    <span class="hint">數據單位</span>
-    <div class="seg" role="group" aria-label="數據單位">
-      <button id="u-cnt" aria-pressed="true">受虐人數</button>
-      <button id="u-rate" aria-pressed="false">每萬名兒少</button>
+    <div class="head-top">
+      <div class="eyebrow">兒童及少年保護｜數據檢視｜2026 年 11 月整理</div>
+      <div class="seg theme-seg" role="group" aria-label="外觀">
+        <button data-th="auto" aria-pressed="true">自動</button>
+        <button data-th="light" aria-pressed="false">淺色</button>
+        <button data-th="dark" aria-pressed="false">深色</button>
+      </div>
     </div>
-    <span class="hint" id="u-hint">切換後，熱度表、縣市比較和期間變化都會改用同一個單位。</span>
-  </div>
+    <h1>臺灣兒少受虐與家外裁罰數據</h1>
+    <p class="sub">整理各縣市兒少受虐人數、家外場域裁罰紀錄，以及臺北市兒虐爭議中雙方引用的指標。</p>
+  </header>
+  <nav class="tabs" role="tablist" aria-label="頁面">
+    <button role="tab" data-pg="policy">政策檢視</button>
+    <button role="tab" data-pg="field">家外場域及裁罰案件</button>
+    <button role="tab" data-pg="county">總受虐與縣市人數</button>
+    <button role="tab" data-pg="period">期間變化</button>
+  </nav>
+  <div class="page" id="pg-policy">
+  <section class="panel">
+    <div>
+      <div class="eyebrow">政策檢視｜資料整理至 2026 年 11 月 5 日</div>
+      <h2 class="ph">臺北市兒虐爭議：雙方在爭什麼</h2>
+      <p class="lead">2026 年臺北市長選舉期間，民進黨候選人沈伯洋與國民黨籍現任市長蔣萬安陣營，針對臺北市兒少保護成效激烈攻防。雙方引用的數字多半有出處，但量的不是同一件事：一方以兒虐致死人數，以及受理、開案等件數做縣市比較；另一方看托育、幼兒園等家外場域的案件。</p>
+    </div>
+
+    <h3 class="ps">事件經過</h3>
+    <ol class="tl">
+      <li><time>2023 年 12 月</time><div><b>剴剴案。</b>1 歲男童經兒福聯盟媒合，由居家保母照顧期間遭虐致死。2025 年 5 月監察院同時糾正衛福部、新北市與臺北市政府，臺北部分指居家托育訪視與督導流於形式；2026 年 7 月保母姊妹判決定讞（無期徒刑、18 年）。<sup class="fn"><a href="https://www.cna.com.tw/news/aipl/202505290215.aspx" target="_blank" rel="noopener" title="中央社：剴剴案 監察院糾正衛福部及雙北市府">[1]</a></sup><sup class="fn"><a href="https://news.pts.org.tw/article/750920" target="_blank" rel="noopener" title="公視新聞網：剴剴案相關報導與判決更新">[2]</a></sup></div></li>
+      <li><time>2026 年 6–7 月</time><div><b>夏莉絲幼兒園不當對待案。</b>臺北市教育局表示 2 名教保人員終身不得從事教保工作、各罰 60 萬元，並廢止園所設立許可。民進黨議員質疑先前的 1999 陳情未落實處理；教育局回應共收到 13 件陳情並逐案查處。<sup class="fn"><a href="https://n.yam.com/Article/20260730286546" target="_blank" rel="noopener" title="蕃新聞：夏莉絲幼兒園案再掀爭議 教育局槓上民代">[3]</a></sup></div></li>
+      <li><time>2026 年 8 月 28 日</time><div>國民黨發言人陳麗娜以高雄男童受虐致死案為例，主張兒保不分南北，北高應以同一標準檢驗。<sup class="fn"><a href="https://udn.com/news/story/6656/9720576" target="_blank" rel="noopener" title="聯合新聞網：兒虐事件引關注 國民黨：保護不分南北、檢驗北高應同一標準">[4]</a></sup></div></li>
+      <li><time>2026 年 8 月 31 日</time><div>蔣萬安在市議會提出 4 項精進措施：新增「類家內」案件類別、增設審查機制、擴充短期家庭式安置、提高第一線社工待遇並增加人力。<sup class="fn"><a href="https://udn.com/news/story/7323/9724802" target="_blank" rel="noopener" title="聯合新聞網：精進兒少保護網 蔣萬安提4措施精進現有機制">[5]</a></sup></div></li>
+      <li><time>2026 年 11 月 4 日</time><div>沈伯洋受訪時表示臺北兒虐可能是「六都之首」。<sup class="fn"><a href="https://news.ltn.com.tw/news/politics/breakingnews/5629830" target="_blank" rel="noopener" title="自由時報：沈伯洋指北市兒虐恐六都最嚴重 蔣萬安反批：憑空猜測不負責任">[6]</a></sup></div></li>
+      <li><time>2026 年 11 月 4–5 日</time><div>雙方競辦、立委與高雄市府相繼引用不同數據回應，見下方整理。<sup class="fn"><a href="https://newtalk.tw/news/view/2026-11-05/1069345" target="_blank" rel="noopener" title="新頭殼：深夜互槓！蔣辦嗆沈伯洋領薪不做功課 沈辦：家外兒虐同樣是市民的孩子">[7]</a></sup><sup class="fn"><a href="https://www.chinatimes.com/realtimenews/20261105003312-260407" target="_blank" rel="noopener" title="中時新聞網：沈伯洋談兒虐「用猜的」 王鴻薇曝北市真正排名：還在硬拗">[8]</a></sup><sup class="fn"><a href="https://news.nextapple.com/politics/20261105/40F073FAFEE4A2D73588BAA3F8C1FDBB" target="_blank" rel="noopener" title="壹蘋新聞網：六都兒虐誰最嚴重？高市府反駁「高雄兒虐死亡人數非六都最高」">[12]</a></sup></div></li>
+    </ol>
+
+    <h3 class="ps">雙方的說法</h3>
+    <div class="sides">
+      <div class="side">
+        <div class="side-h">蔣萬安陣營、國民黨</div>
+        <ul>
+          <li>沈伯洋的指控沒有數據根據，政治人物不能憑空臆測。<sup class="fn"><a href="https://news.ltn.com.tw/news/politics/breakingnews/5629830" target="_blank" rel="noopener" title="自由時報：沈伯洋指北市兒虐恐六都最嚴重 蔣萬安反批：憑空猜測不負責任">[6]</a></sup></li>
+          <li>衛福部 112–114 年家內兒虐致死：高雄累計 14 人，臺北 2 人（蔣辦發言人）。<sup class="fn"><a href="https://newtalk.tw/news/view/2026-11-05/1069345" target="_blank" rel="noopener" title="新頭殼：深夜互槓！蔣辦嗆沈伯洋領薪不做功課 沈辦：家外兒虐同樣是市民的孩子">[7]</a></sup></li>
+          <li>蔣萬安陣營與支持者也以臺北市 113 年家內施虐致死 0 人回應外界質疑。<span class="nosrc">待補出處</span></li>
+          <li>受理、開案、致死各項指標，臺北都不是六都第一，長期約排第五（立委王鴻薇）。<sup class="fn"><a href="https://www.chinatimes.com/realtimenews/20261105003312-260407" target="_blank" rel="noopener" title="中時新聞網：沈伯洋談兒虐「用猜的」 王鴻薇曝北市真正排名：還在硬拗">[8]</a></sup></li>
+        </ul>
+      </div>
+      <div class="side">
+        <div class="side-h">沈伯洋陣營、民進黨、高雄市政府</div>
+        <ul>
+          <li>只拿家內致死數比較是「問台北答高雄」，看不到保母、幼兒園等家外案件。<sup class="fn"><a href="https://news.ltn.com.tw/news/politics/breakingnews/5629891" target="_blank" rel="noopener" title="自由時報：「問T答K」！ 沈伯洋痛批蔣萬安模糊兒虐焦點：令人痛心">[9]</a></sup></li>
+          <li>臺北市社會局自己也把保母虐死案列為家外案件；「家外兒虐同樣是市民的孩子」。<sup class="fn"><a href="https://newtalk.tw/news/view/2026-11-05/1069345" target="_blank" rel="noopener" title="新頭殼：深夜互槓！蔣辦嗆沈伯洋領薪不做功課 沈辦：家外兒虐同樣是市民的孩子">[7]</a></sup></li>
+          <li>蔣市府任內有 8 起重大兒虐事件、已知受害兒童 115 名、不當對待 618 件（沈辦說法；報導未說明數據來源與統計期間）。<sup class="fn"><a href="https://news.ltn.com.tw/news/politics/breakingnews/5629887" target="_blank" rel="noopener" title="自由時報：兒虐不是「比數字輸贏」！沈陣營槓蔣萬安：無心解決就換人做">[10]</a></sup><sup class="fn"><a href="https://www.ettoday.net/news/20261105/3266668.htm" target="_blank" rel="noopener" title="ETtoday：蔣萬安砲轟沈伯洋用猜的 沈辦引數據打臉：家外兒虐同樣是市民孩子">[11]</a></sup></li>
+          <li>主張設立獨立的「家長版 1999」申訴管道與追蹤機制，並追究主管責任。<sup class="fn"><a href="https://news.ltn.com.tw/news/politics/breakingnews/5629887" target="_blank" rel="noopener" title="自由時報：兒虐不是「比數字輸贏」！沈陣營槓蔣萬安：無心解決就換人做">[10]</a></sup></li>
+          <li>高雄市社會局回應：依衛福部 110–114 年資料，重大兒虐致死五年合計為臺中 18、新北 17、高雄 15，高雄並非六都最高，並呼籲不要混用不同指標。<sup class="fn"><a href="https://news.nextapple.com/politics/20261105/40F073FAFEE4A2D73588BAA3F8C1FDBB" target="_blank" rel="noopener" title="壹蘋新聞網：六都兒虐誰最嚴重？高市府反駁「高雄兒虐死亡人數非六都最高」">[12]</a></sup></li>
+        </ul>
+      </div>
+    </div>
+    <p class="hint">「待補出處」：本頁尚未找到可引用的報導或衛福部逐年分縣市原始表，暫無法核對。</p>
+
+    <h3 class="ps">三個糾結點</h3>
+    <div class="knots">
+      <div><b>指標不同</b><p>兒虐致死人數少、逐年波動大，臺北偏低；受理、開案件數臺北在六都也不是最高。家外案件則沒有官方公布的分縣市統計，只能從裁罰名單去數。雙方各自引用對自己有利的指標。</p></div>
+      <div><b>比較對象不同</b><p>一方看臺北自己的案件與趨勢，另一方拿臺北和其他縣市排名，所以出現「問台北答高雄」與「北高同一標準」兩種說法。</p></div>
+      <div><b>責任歸屬不同</b><p>重大案件是個案疏失還是制度問題？剴剴案監察院同時糾正中央與地方；家內、家外的分類也是全國一致的 SDM 標準，地方能調整的範圍有限。</p></div>
+    </div>
+
+    <h3 class="ps">為什麼沈伯洋以家外兒虐為切入點</h3>
+    <p class="body">依報導整理，主要有三個原因：</p>
+    <ul class="body">
+      <li><b>近期臺北的重大案件都在家外。</b>剴剴案發生在居家托育，夏莉絲案發生在幼兒園，這兩案都引發臺北市府監督責任的討論。</li>
+      <li><b>蔣陣營引用的家內致死數據，正好不包含家外案件。</b>沈陣營因此主張只看家內數字會低估問題。</li>
+      <li><b>他的政見對準的是家外監督。</b>「家長版 1999」與追蹤機制，處理的是陳情沒被落實、稽查沒有後續的問題，主要發生在托育與幼兒園。</li>
+    </ul>
+  </section>
 
   <section class="panel">
-    <div class="controls">
-      <h2 style="margin-right:8px">縣市 × 年度熱度表</h2>
-      <div class="seg" role="group" aria-label="顏色模式">
-        <button id="m-abs" aria-pressed="true">實際數值</button>
-        <button id="m-rel" aria-pressed="false">各縣市自身比較</button>
-      </div>
-      <div class="seg" role="group" aria-label="排序">
-        <button id="s-2024" aria-pressed="true">依 113 年排序</button>
-        <button id="s-geo" aria-pressed="false">依行政區順序</button>
-      </div>
-      <div class="legend"><span id="lg-lo">少</span><div class="bar" id="lg-bar"></div><span id="lg-hi">多</span></div>
-    </div>
-    <div class="scroll"><table id="heat"></table></div>
-    <div class="hint" id="hint">「實際數值」用平方根色階，讓人數少的縣市也看得出差異。最右欄為 108→113 年（2019→2024）變化。</div>
-  </section>
-
-  <section class="panel" id="detail">
-    <div class="controls">
-      <div class="seg" role="tablist" aria-label="圖表分頁">
-        <button id="tab-cmp" role="tab" aria-pressed="true">縣市比較</button>
-        <button id="tab-sex" role="tab" aria-pressed="false">男女與原住民</button>
-      </div>
-    </div>
-    <div id="pane-cmp" class="pane">
-      <div class="controls">
-        <h2 style="margin-right:4px">各縣市歷年受虐人數</h2>
-        <button class="qbtn" id="q-six">六都</button>
-        <button class="qbtn" id="q-top">113 年前五名</button>
-        <button class="qbtn" id="q-clr">清除</button>
-        <span class="hint" id="cmp-msg">點下方縣市加入或移除，最多同時 8 個</span>
-      </div>
-      <div class="chips" id="chips"></div>
-      <div class="scroll"><svg id="cmp" viewBox="0 0 900 340" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="縣市比較折線圖"></svg></div>
-    </div>
-    <div id="pane-sex" class="pane" hidden>
-      <div class="detail-head">
-        <label for="d-sel" class="hint">縣市</label>
-        <select id="d-sel"></select>
-        <h2 id="d-name"></h2>
-        <div class="key">
-          <span><i style="background:var(--accent)"></i>合計</span>
-          <span><i style="background:var(--female)"></i>女</span>
-          <span><i style="background:var(--male)"></i>男</span>
-          <span><i style="background:var(--muted);height:0;border-top:2px dashed var(--muted)"></i>原住民</span>
-        </div>
-      </div>
-      <div class="scroll"><svg id="chart" viewBox="0 0 900 300" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="縣市男女趨勢圖"></svg></div>
-    </div>
-  </section>
-
-  <section class="panel" id="period">
     <div>
-      <div class="eyebrow">自選起訖年份</div>
-      <h2 style="font-family:var(--font-display);font-size:22px;margin-top:2px">期間變化</h2>
-      <p class="sub" style="margin-top:4px">選擇起始年和結束年，比較 22 縣市在這段期間的增減幅度。虛線是全國的變化，可以當作基準。</p>
+      <div class="eyebrow">本站統計｜依法公布的裁罰名單</div>
+      <h2 class="ph">113–115 年家外場域不當對待裁罰：臺北市 102 筆，22 縣市最多</h2>
+      <p class="lead">其中幼兒園 92 筆，同樣是 22 縣市最多。下圖是各縣市在 113–115 年（2024–2026）托嬰中心、居家托育、幼兒園、課後照顧、補習班、學校、安置機構的「不當對待」裁罰筆數合計。</p>
     </div>
-    <div class="controls">
-      <span class="hint">期間</span>
-      <select id="p-from" aria-label="起始年"></select><span class="hint">至</span><select id="p-to" aria-label="結束年"></select>
-      <div class="seg" role="group" aria-label="排序">
-        <button id="p-s-chg" aria-pressed="true">依變化幅度</button>
-        <button id="p-s-geo" aria-pressed="false">依行政區順序</button>
-      </div>
-      <span class="hint" id="p-nat"></span>
+    <div class="scroll"><svg id="pol-bar" style="width:100%;min-width:480px;display:block" role="img" aria-label="113–115 年各縣市家外不當對待裁罰筆數"></svg></div>
+    <div class="caveats">
+      <div><b>這不是受虐人數。</b>單位是「裁罰紀錄筆數」，一筆可能涉及多名兒童，也可能同一事件有多筆裁罰；裁罰多也可能反映稽查與裁處比較積極。</div>
+      <div><b>名單會下架。</b>兩個系統只列出仍在公布期間的裁罰，舊紀錄會被移除，實際件數比這裡多。</div>
+      <div><b>115 年只到 11 月初。</b>資料於 2026 年 11 月 5 日彙整。</div>
     </div>
-    <div class="note" id="p-warn" hidden>所選期間跨越 106–107 年（2017–2018），這兩年的數字明顯偏低、口徑可能不同，變化幅度請保守解讀。</div>
-    <div class="scroll"><svg id="p-bar" style="width:100%;min-width:560px;display:block" role="img" aria-label="各縣市期間變化"></svg></div>
-    <div class="hint">＊ 起始年受虐人數少於 100 人的縣市，以淺色表示：人數少時，幾個個案的差異就會造成很大的百分比變化。</div>
+    <div><button class="qbtn" data-go="field">到「家外場域及裁罰案件」看各場域明細 →</button></div>
   </section>
 
+  <section class="panel opinion">
+    <div class="op-tag">個人意見</div>
+    <h2 class="ph" style="font-size:20px">為什麼我以家外兒虐為主</h2>
+    <p class="body">我把重點放在家外兒虐，是因為這是公權力最能積極介入的地方。托嬰中心、居家托育人員和幼兒園，都要向市府登記或取得設立許可，市府有權訪視、稽查、評鑑、裁罰，甚至廢止許可。家內兒虐則多半要等到有人通報後才能介入，還要顧及家庭自主與司法程序。也就是說，家外案件比較能直接反映現行機制是否有需要反省與改善之處。</p>
+    <p class="hint">不同的看法：依衛福部 110–112 年資料，家內兒少保護個案約 2.25 萬件，家外各場域合計約 1,700 件，家內仍是兒少保護的主要範圍。</p>
+  </section>
+
+  <section class="panel">
+    <h3 class="ps" style="margin-top:0">資料來源（對應內文編號）</h3>
+    <ol class="srcs">
+      <li><a href="https://www.cna.com.tw/news/aipl/202505290215.aspx" target="_blank" rel="noopener">剴剴案 監察院糾正衛福部及雙北市府</a>（中央社，2025/05/29）</li>
+      <li><a href="https://news.pts.org.tw/article/750920" target="_blank" rel="noopener">剴剴案相關報導與判決更新</a>（公視新聞網）</li>
+      <li><a href="https://n.yam.com/Article/20260730286546" target="_blank" rel="noopener">夏莉絲幼兒園案再掀爭議 教育局槓上民代</a>（蕃新聞，2026/07/30）</li>
+      <li><a href="https://udn.com/news/story/6656/9720576" target="_blank" rel="noopener">兒虐事件引關注 國民黨：保護不分南北、檢驗北高應同一標準</a>（聯合新聞網，2026/08/28）</li>
+      <li><a href="https://udn.com/news/story/7323/9724802" target="_blank" rel="noopener">精進兒少保護網 蔣萬安提4措施精進現有機制</a>（聯合新聞網，2026/08/31）</li>
+      <li><a href="https://news.ltn.com.tw/news/politics/breakingnews/5629830" target="_blank" rel="noopener">沈伯洋指北市兒虐恐六都最嚴重 蔣萬安反批：憑空猜測不負責任</a>（自由時報，2026/11/04）</li>
+      <li><a href="https://newtalk.tw/news/view/2026-11-05/1069345" target="_blank" rel="noopener">深夜互槓！蔣辦嗆沈伯洋領薪不做功課 沈辦：家外兒虐同樣是市民的孩子</a>（新頭殼，2026/11/05）</li>
+      <li><a href="https://www.chinatimes.com/realtimenews/20261105003312-260407" target="_blank" rel="noopener">沈伯洋談兒虐「用猜的」 王鴻薇曝北市真正排名：還在硬拗</a>（中時新聞網，2026/11/05）</li>
+      <li><a href="https://news.ltn.com.tw/news/politics/breakingnews/5629891" target="_blank" rel="noopener">「問T答K」！ 沈伯洋痛批蔣萬安模糊兒虐焦點：令人痛心</a>（自由時報，2026/11/05）</li>
+      <li><a href="https://news.ltn.com.tw/news/politics/breakingnews/5629887" target="_blank" rel="noopener">兒虐不是「比數字輸贏」！沈陣營槓蔣萬安：無心解決就換人做</a>（自由時報，2026/11/05）</li>
+      <li><a href="https://www.ettoday.net/news/20261105/3266668.htm" target="_blank" rel="noopener">蔣萬安砲轟沈伯洋用猜的 沈辦引數據打臉：家外兒虐同樣是市民孩子</a>（ETtoday，2026/11/05）</li>
+      <li><a href="https://news.nextapple.com/politics/20261105/40F073FAFEE4A2D73588BAA3F8C1FDBB" target="_blank" rel="noopener">六都兒虐誰最嚴重？高市府反駁「高雄兒虐死亡人數非六都最高」</a>（壹蘋新聞網，2026/11/05）</li>
+    </ol>
+  </section>
+  </div>
+  <div class="page" id="pg-field" hidden>
   <section class="panel" id="field">
     <div class="controls">
       <h2 style="margin-right:4px">家外場域</h2>
@@ -249,6 +311,94 @@ svg text{font-family:var(--font-body)}
     </div>
     <div class="note" id="f-note"></div>
   </section>
+  </div>
+  <div class="page" id="pg-county" hidden>
+  <div class="controls unitbar">
+    <span class="hint">數據單位</span>
+    <div class="seg" role="group" aria-label="數據單位">
+      <button id="u-cnt" aria-pressed="true">受虐人數</button>
+      <button id="u-rate" aria-pressed="false">每萬名兒少</button>
+    </div>
+    <span class="hint" id="u-hint">切換後，熱度表、縣市比較和期間變化都會改用同一個單位。</span>
+  </div>
+  <section class="summary" id="summary"></section>
+
+  <div class="note">注意：105→106 年（2016→2017）全國人數從 9,461 人降到 4,135 人，107→108 年（2018→2019）又回升到 11,113 人。原始檔沒有說明原因，106–107 年可能與統計口徑或通報制度調整有關，跨越這兩年比較時請保守解讀。表中這兩年以虛線框標示。</div>
+
+
+  <section class="panel">
+    <div class="controls">
+      <h2 style="margin-right:8px">縣市 × 年度熱度表</h2>
+      <div class="seg" role="group" aria-label="顏色模式">
+        <button id="m-abs" aria-pressed="true">實際數值</button>
+        <button id="m-rel" aria-pressed="false">各縣市自身比較</button>
+      </div>
+      <div class="seg" role="group" aria-label="排序">
+        <button id="s-2024" aria-pressed="true">依 113 年排序</button>
+        <button id="s-geo" aria-pressed="false">依行政區順序</button>
+      </div>
+      <div class="legend"><span id="lg-lo">少</span><div class="bar" id="lg-bar"></div><span id="lg-hi">多</span></div>
+    </div>
+    <div class="scroll"><table id="heat"></table></div>
+    <div class="hint" id="hint">「實際數值」用平方根色階，讓人數少的縣市也看得出差異。最右欄為 108→113 年（2019→2024）變化。</div>
+  </section>
+
+  <section class="panel" id="detail">
+    <div class="controls">
+      <div class="seg" role="tablist" aria-label="圖表分頁">
+        <button id="tab-cmp" role="tab" aria-pressed="true">縣市比較</button>
+        <button id="tab-sex" role="tab" aria-pressed="false">男女與原住民</button>
+      </div>
+    </div>
+    <div id="pane-cmp" class="pane">
+      <div class="controls">
+        <h2 style="margin-right:4px">各縣市歷年受虐人數</h2>
+        <button class="qbtn" id="q-six">六都</button>
+        <button class="qbtn" id="q-top">113 年前五名</button>
+        <button class="qbtn" id="q-clr">清除</button>
+        <span class="hint" id="cmp-msg">點下方縣市加入或移除，最多同時 8 個</span>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="scroll"><svg id="cmp" viewBox="0 0 900 340" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="縣市比較折線圖"></svg></div>
+    </div>
+    <div id="pane-sex" class="pane" hidden>
+      <div class="detail-head">
+        <label for="d-sel" class="hint">縣市</label>
+        <select id="d-sel"></select>
+        <h2 id="d-name"></h2>
+        <div class="key">
+          <span><i style="background:var(--accent)"></i>合計</span>
+          <span><i style="background:var(--female)"></i>女</span>
+          <span><i style="background:var(--male)"></i>男</span>
+          <span><i style="background:var(--muted);height:0;border-top:2px dashed var(--muted)"></i>原住民</span>
+        </div>
+      </div>
+      <div class="scroll"><svg id="chart" viewBox="0 0 900 300" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="縣市男女趨勢圖"></svg></div>
+    </div>
+  </section>
+
+  </div>
+  <div class="page" id="pg-period" hidden>
+  <section class="panel" id="period">
+    <div>
+      <div class="eyebrow">自選起訖年份</div>
+      <h2 style="font-family:var(--font-display);font-size:22px;margin-top:2px">期間變化</h2>
+      <p class="sub" style="margin-top:4px">選擇起始年和結束年，比較 22 縣市在這段期間的增減幅度。虛線是全國的變化，可以當作基準。</p>
+    </div>
+    <div class="controls">
+      <span class="hint">期間</span>
+      <select id="p-from" aria-label="起始年"></select><span class="hint">至</span><select id="p-to" aria-label="結束年"></select>
+      <div class="seg" role="group" aria-label="排序">
+        <button id="p-s-chg" aria-pressed="true">依變化幅度</button>
+        <button id="p-s-geo" aria-pressed="false">依行政區順序</button>
+      </div>
+      <span class="hint" id="p-nat"></span>
+    </div>
+    <div class="note" id="p-warn" hidden>所選期間跨越 106–107 年（2017–2018），這兩年的數字明顯偏低、口徑可能不同，變化幅度請保守解讀。</div>
+    <div class="scroll"><svg id="p-bar" style="width:100%;min-width:560px;display:block" role="img" aria-label="各縣市期間變化"></svg></div>
+    <div class="hint">＊ 起始年受虐人數少於 100 人的縣市，以淺色表示：人數少時，幾個個案的差異就會造成很大的百分比變化。</div>
+  </section>
+  </div>
   <div class="src">資料來源：受虐人數為各直轄市、縣市政府「兒童及少年保護－受虐人數」統計表（單位：人）；家外場域為衛生福利部保護服務司「110-112家內、家外數據圖表」；幼兒園裁罰為教育部提供、社家署兒少統計專區公布之裁罰統計。場域數字由 PDF 圖表擷取，正式引用前請以原始檔核對。每萬名兒少受虐人數以內政部「村里戶數、單一年齡人口」各年 12 月底 0–17 歲人口為分母計算。「各縣市場域裁罰件數」取自衛福部社家署 CRC 資訊網「全國違反兒少法公布」及教育部全國教保資訊網「裁罰紀錄查詢」，於 2026 年 11 月 5 日逐筆彙整（單位：筆）。</div>
 </div>
 <div id="tip"></div>
@@ -403,7 +553,15 @@ document.getElementById('m-rel').onclick=()=>{mode='rel';setSeg('m-abs','m-rel',
 document.getElementById('s-2024').onclick=()=>{sort='2024';setSeg('s-2024','s-geo',true);table()};
 document.getElementById('s-geo').onclick=()=>{sort='geo';setSeg('s-2024','s-geo',false);table()};
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{table();fbar();});
-new MutationObserver(table).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+new MutationObserver(()=>{table();if(typeof fbar==='function')fbar();}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+// ---- 外觀切換 ----
+function applyTheme(th){
+  if(th==='light'||th==='dark')document.documentElement.setAttribute('data-theme',th);else document.documentElement.removeAttribute('data-theme');
+  document.querySelectorAll('.theme-seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.th===th));
+  try{localStorage.setItem('tw-childabuse-theme',th);}catch(e){}
+}
+document.querySelectorAll('.theme-seg button').forEach(b=>b.onclick=()=>applyTheme(b.dataset.th));
+(()=>{let th=null;try{th=localStorage.getItem('tw-childabuse-theme');}catch(e){} if(th&&th!=='auto')applyTheme(th);})();
 
 // ---- 縣市比較 ----
 const SIX=['臺北市','新北市','桃園市','臺中市','臺南市','高雄市'];
@@ -618,6 +776,7 @@ document.getElementById('u-cnt').onclick=()=>setMetric('cnt');
 document.getElementById('u-rate').onclick=()=>setMetric('rate');
 pInit(); pDraw();
 
+
 // ---- 場域裁罰 ----
 const FD = {"sfaa":[["南投縣",2022,"tuoying","a",1],["南投縣",2024,"after","a",1],["南投縣",2024,"tuoying","n",1],["宜蘭縣",2021,"after","a",1],["屏東縣",2026,"home","a",1],["彰化縣",2015,"tuoying","a",1],["彰化縣",2017,"home","a",1],["彰化縣",2019,"after","a",1],["彰化縣",2021,"home","n",1],["彰化縣",2021,"kg","a",1],["彰化縣",2021,"school","a",1],["彰化縣",2022,"tuoying","n",3],["彰化縣",2023,"tuoying","n",2],["彰化縣",2024,"tuoying","n",1],["彰化縣",2025,"tuoying","n",1],["新北市",2019,"after","n",3],["新北市",2020,"after","n",2],["新北市",2021,"after","n",2],["新北市",2021,"home","n",1],["新北市",2022,"after","n",2],["新北市",2022,"home","a",1],["新北市",2023,"after","n",6],["新北市",2023,"cram","n",1],["新北市",2023,"home","n",1],["新北市",2024,"after","n",5],["新北市",2024,"cram","n",5],["新北市",2024,"home","a",2],["新北市",2024,"school","a",1],["新北市",2024,"tuoying","n",3],["新北市",2025,"after","n",1],["新北市",2025,"home","a",1],["新北市",2025,"home","n",1],["新北市",2025,"place","a",1],["新北市",2025,"school","a",2],["新北市",2025,"tuoying","n",2],["新北市",2026,"home","a",1],["桃園市",2014,"after","a",2],["桃園市",2017,"home","n",1],["桃園市",2019,"school","a",2],["桃園市",2022,"home","a",1],["桃園市",2024,"after","n",4],["桃園市",2024,"home","a",1],["桃園市",2025,"after","n",7],["桃園市",2026,"after","a",1],["桃園市",2026,"cram","a",2],["桃園市",2026,"place","a",2],["桃園市",2026,"school","a",2],["桃園市",2026,"tuoying","a",5],["臺中市",2013,"tuoying","n",1],["臺中市",2015,"tuoying","a",1],["臺中市",2015,"tuoying","n",2],["臺中市",2016,"school","a",1],["臺中市",2016,"tuoying","n",2],["臺中市",2017,"home","a",1],["臺中市",2017,"tuoying","n",1],["臺中市",2018,"home","a",1],["臺中市",2018,"kg","a",3],["臺中市",2018,"place","a",1],["臺中市",2018,"school","a",2],["臺中市",2018,"tuoying","a",1],["臺中市",2018,"tuoying","n",1],["臺中市",2019,"home","a",1],["臺中市",2019,"school","a",1],["臺中市",2019,"tuoying","a",1],["臺中市",2020,"cram","a",1],["臺中市",2020,"home","a",4],["臺中市",2020,"kg","a",2],["臺中市",2020,"place","a",2],["臺中市",2020,"school","a",3],["臺中市",2020,"tuoying","a",3],["臺中市",2021,"cram","a",2],["臺中市",2021,"home","a",7],["臺中市",2021,"kg","a",1],["臺中市",2021,"school","a",1],["臺中市",2022,"cram","a",3],["臺中市",2022,"home","a",11],["臺中市",2022,"kg","a",6],["臺中市",2022,"school","a",7],["臺中市",2022,"tuoying","a",9],["臺中市",2022,"tuoying","n",8],["臺中市",2023,"home","a",3],["臺中市",2023,"tuoying","a",2],["臺中市",2023,"tuoying","n",2],["臺中市",2024,"after","n",7],["臺中市",2024,"cram","a",1],["臺中市",2024,"home","a",1],["臺中市",2024,"school","a",3],["臺中市",2024,"tuoying","n",1],["臺中市",2025,"after","n",3],["臺中市",2025,"cram","a",1],["臺中市",2025,"home","a",4],["臺中市",2025,"school","a",4],["臺中市",2025,"tuoying","a",3],["臺中市",2026,"cram","a",1],["臺中市",2026,"home","a",3],["臺中市",2026,"school","a",2],["臺北市",2015,"cram","a",1],["臺北市",2015,"home","a",1],["臺北市",2017,"kg","a",1],["臺北市",2017,"school","a",1],["臺北市",2017,"tuoying","n",1],["臺北市",2019,"after","a",1],["臺北市",2019,"cram","a",1],["臺北市",2019,"home","a",2],["臺北市",2019,"tuoying","a",8],["臺北市",2020,"home","a",1],["臺北市",2020,"kg","a",1],["臺北市",2020,"tuoying","a",6],["臺北市",2022,"home","a",1],["臺北市",2022,"kg","a",2],["臺北市",2022,"school","a",1],["臺北市",2023,"home","a",1],["臺北市",2023,"school","a",1],["臺北市",2024,"after","n",3],["臺北市",2024,"home","a",1],["臺北市",2024,"tuoying","a",1],["臺北市",2025,"after","n",40],["臺北市",2025,"home","a",1],["臺北市",2025,"school","a",3],["臺北市",2026,"after","n",5],["臺北市",2026,"school","a",1],["臺北市",2026,"tuoying","a",3],["臺南市",2014,"tuoying","n",1],["臺南市",2016,"tuoying","n",2],["臺南市",2017,"tuoying","n",2],["臺南市",2018,"tuoying","n",1],["臺南市",2020,"tuoying","n",1],["臺南市",2022,"home","n",1],["臺南市",2024,"home","a",1],["臺南市",2024,"home","n",2],["臺南市",2024,"tuoying","a",1],["臺南市",2026,"home","a",3],["臺東縣",2022,"home","a",1],["臺東縣",2023,"kg","a",1],["臺東縣",2023,"place","a",2],["臺東縣",2023,"school","a",2],["臺東縣",2024,"school","a",1],["臺東縣",2025,"kg","a",2],["花蓮縣",2017,"school","a",2],["花蓮縣",2021,"place","a",1],["苗栗縣",2025,"after","n",1],["苗栗縣",2026,"after","n",3],["金門縣",2024,"school","a",1],["金門縣",2025,"school","a",1],["雲林縣",2022,"cram","a",1],["雲林縣",2023,"tuoying","n",1],["雲林縣",2024,"after","a",1],["高雄市",2015,"home","n",1],["高雄市",2019,"after","n",3],["高雄市",2019,"home","n",3],["高雄市",2021,"after","a",1],["高雄市",2021,"home","a",1],["高雄市",2025,"home","a",2],["高雄市",2025,"tuoying","n",1],["高雄市",2026,"cram","a",1],["高雄市",2026,"home","a",1],["嘉義市",2022,"tuoying","n",1],["嘉義縣",2024,"school","a",1],["嘉義縣",2025,"place","a",1],["嘉義縣",2025,"school","a",3],["新竹市",2014,"tuoying","n",3],["新竹市",2015,"tuoying","n",1],["新竹市",2017,"tuoying","n",3],["新竹市",2019,"home","a",1],["新竹市",2022,"school","a",1],["新竹市",2026,"after","a",1],["新竹縣",2023,"after","a",1],["新竹縣",2023,"home","a",1],["新竹縣",2023,"kg","a",1],["新竹縣",2023,"place","a",1],["新竹縣",2023,"school","a",1],["新竹縣",2024,"school","a",2],["新竹縣",2024,"tuoying","a",3],["新竹縣",2025,"home","a",1],["新竹縣",2025,"school","a",4],["新竹縣",2025,"tuoying","a",1],["新竹縣",2026,"home","a",1],["新竹縣",2026,"school","a",3],["新竹縣",2026,"tuoying","a",1]],"kg":{"基隆市":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.1.0.0,0.3.1.0.0,4.0.2.1.1,13.1.2.0.3","臺北市":"0.0.0.0.0,0.0.3.0.0,0.0.1.0.0,7.3.4.0.3,19.17.27.1.2,41.23.34.0.4,32.12.26.1.23","新北市":"0.0.1.0.0,0.0.5.0.2,0.1.4.0.1,2.4.16.0.3,17.23.75.8.8,18.20.26.4.6,29.15.25.0.14","桃園市":"0.0.0.0.0,0.0.1.0.0,0.1.0.0.1,0.0.2.0.1,25.11.16.2.6,27.19.24.0.8,34.11.8.1.24","新竹市":"0.0.0.0.0,0.0.0.0.1,0.0.0.0.0,1.0.0.0.0,8.0.3.1.1,7.14.9.0.4,4.1.1.3.2","新竹縣":"0.0.0.0.1,0.0.0.0.2,0.0.0.0.2,0.3.5.0.3,5.4.5.2.0,5.6.3.2.0,10.5.11.0.2","苗栗縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,5.6.8.0.1,9.6.3.0.1,3.1.3.1.3","臺中市":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,1.2.3.0.1,12.14.36.2.8,10.4.9.1.0,27.11.13.2.15","彰化縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,1.0.1.0.0,4.0.5.1.3,12.8.24.1.8,12.15.18.1.10","南投縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.1.0,1.0.1.0.0,1.0.1.0.0,1.1.0.0.0","雲林縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,2.1.2.0.0,1.1.2.0.0,10.2.0.0.0","嘉義市":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,2.1.1.0.0,0.0.0.0.0,0.0.0.0.1","嘉義縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,3.1.3.0.1,3.0.4.0.1,3.0.1.0.0","臺南市":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.4,0.0.2.0.0,15.2.12.0.1,24.3.7.0.2,34.6.12.1.4","高雄市":"0.0.0.0.0,0.0.0.0.4,0.0.0.0.8,0.0.0.0.0,5.3.3.1.2,13.8.8.4.2,16.5.5.2.11","屏東縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.1.0.0.2,8.1.3.1.1,11.2.3.4.3","臺東縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.2.0.0,5.0.1.0.0,0.0.0.0.0","花蓮縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,2.0.0.0.0,6.1.4.0.3,5.4.3.1.1","宜蘭縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,3.1.1.3.0,3.1.4.0.0,3.1.0.0.2","澎湖縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.3.3.0.0,0.0.0.0.0","金門縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.1"}};
 const SETS=[
@@ -700,4 +859,38 @@ function fDraw(){
 }
 fControls(); fDraw();
 
+// ---- 政策檢視：113–115 年家外不當對待裁罰筆數 ----
+function polBar(){
+  const ys=[2024,2025,2026], tot={};
+  GEO.forEach(c=>tot[c]=0);
+  FD.sfaa.forEach(([c,y,k,ab,v])=>{if(ab==='a'&&k!=='kg'&&ys.includes(y)&&c in tot)tot[c]+=v;});
+  for(const [c,str] of Object.entries(FD.kg)){str.split(',').forEach((s,i)=>{if(ys.includes(MOEY[i])&&c in tot)tot[c]+=+s.split('.')[0];});}
+  const rows=Object.entries(tot).filter(r=>r[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const svg=document.getElementById('pol-bar'), W=720, rh=26, m={l:70,r:50,t:6,b:24}, H=m.t+m.b+rows.length*rh;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const mx=Math.max(...rows.map(r=>r[1])), x=v=>(W-m.l-m.r)*v/mx;
+  let g='';
+  rows.forEach(([c,v],i)=>{const y=m.t+i*rh, hl=c==='臺北市';
+    g+=`<text x="${m.l-8}" y="${y+rh/2+4}" text-anchor="end" font-size="13" fill="var(--fg)" ${hl?'font-weight="700"':''}>${c}</text>`;
+    g+=`<rect x="${m.l}" y="${y+5}" width="${Math.max(x(v),1)}" height="${rh-10}" rx="3" fill="${hl?'var(--accent)':'var(--line)'}"/>`;
+    g+=`<text x="${m.l+x(v)+6}" y="${y+rh/2+4}" font-size="12.5" fill="var(--fg2)" ${hl?'font-weight="700"':''}>${v}</text>`;});
+  g+=`<text x="${m.l}" y="${H-6}" font-size="11.5" fill="var(--muted)">前 10 名縣市；單位：裁罰紀錄筆數（不是人數）</text>`;
+  svg.innerHTML=g;
+}
+polBar();
+
+// ---- 分頁切換 ----
+const PAGES=['policy','field','county','period'];
+function showPage(k){
+  if(!PAGES.includes(k))k='policy';
+  PAGES.forEach(p=>document.getElementById('pg-'+p).hidden=p!==k);
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.pg===k));
+  const ub=document.querySelector('.unitbar');
+  if(k==='county'||k==='period'){const pg=document.getElementById('pg-'+k);if(ub.parentElement!==pg)pg.prepend(ub);}
+  hideTip();
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{if(location.hash!=='#'+b.dataset.pg)location.hash=b.dataset.pg;else showPage(b.dataset.pg);window.scrollTo({top:0});});
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{location.hash=b.dataset.go;window.scrollTo({top:0});});
+window.addEventListener('hashchange',()=>showPage(location.hash.slice(1)));
+showPage(location.hash.slice(1));
 </script>
