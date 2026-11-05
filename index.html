@@ -1,0 +1,618 @@
+<title>各縣市兒少受虐人數</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700;900&display=swap">
+<style>
+/* Layout: 單欄報告 — 全國趨勢摘要 → 縣市×年度熱度表 → 點選縣市看細節 */
+:root{
+  --bg:#f6f8fb; --surface:#ffffff; --fg:#17202c; --fg2:#4a5566; --muted:#7a8494; --line:#dde3ec;
+  --accent:#1c5cab; --warn-bg:#fff6e0; --warn-fg:#7a5300; --male:#2a78d6; --female:#c2410c;
+  --font-display:"Noto Serif TC","Songti TC",serif; --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161c; --surface:#1a2029; --fg:#e8edf4; --fg2:#b4bdca; --muted:#8a94a3; --line:#2c3440;
+  --accent:#86b6ef; --warn-bg:#3a2e10; --warn-fg:#f2d27a; --male:#6da7ec; --female:#f08a5d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161c; --surface:#1a2029; --fg:#e8edf4; --fg2:#b4bdca; --muted:#8a94a3; --line:#2c3440;
+  --accent:#86b6ef; --warn-bg:#3a2e10; --warn-fg:#f2d27a; --male:#6da7ec; --female:#f08a5d; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:24px}
+h1{font-family:var(--font-display);font-weight:900;font-size:clamp(26px,4vw,36px);line-height:1.25;margin:0;text-wrap:balance}
+h2{font-size:17px;margin:0;font-weight:700}
+.sub{color:var(--fg2);margin:6px 0 0;max-width:65ch}
+.eyebrow{font-size:12px;letter-spacing:.08em;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.kpi{display:flex;flex-direction:column;gap:2px}
+.kpi b{font-size:28px;font-variant-numeric:tabular-nums;font-weight:700}
+.kpi span{color:var(--fg2);font-size:13px}
+.note{background:var(--warn-bg);color:var(--warn-fg);border-radius:8px;padding:10px 12px;font-size:13.5px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:13.5px;background:transparent;color:var(--fg2);border:0;padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.seg button:focus-visible,tr.row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.legend{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-left:auto}
+.legend .bar{width:140px;height:10px;border-radius:3px}
+.scroll{overflow-x:auto}
+table{border-collapse:separate;border-spacing:2px;width:100%;min-width:760px;font-variant-numeric:tabular-nums}
+th{font-size:12.5px;font-weight:500;color:var(--muted);padding:4px 6px;text-align:center;white-space:nowrap}
+th.name,td.name{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1}
+td{padding:0;height:30px;text-align:center;font-size:12.5px;border-radius:3px}
+td.name{font-size:14px;padding-right:10px;white-space:nowrap;color:var(--fg)}
+td.chg{font-size:12.5px;color:var(--fg2);padding:0 6px;white-space:nowrap;text-align:right}
+th.break,td.break{opacity:1}
+tr.row{cursor:pointer}
+tr.row:hover td.name,tr.row.sel td.name{color:var(--accent);font-weight:700}
+tr.total td.name{font-weight:700}
+tr.total td{height:34px}
+tr.sep td{height:6px}
+.hint{font-size:12.5px;color:var(--muted)}
+#tip{position:fixed;pointer-events:none;background:var(--fg);color:var(--bg);font-size:12.5px;padding:6px 9px;border-radius:6px;z-index:20;white-space:nowrap;opacity:0;transition:opacity .1s}
+.detail-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline}
+.detail-head h2{font-family:var(--font-display);font-size:22px}
+.key{display:flex;gap:14px;font-size:13px;color:var(--fg2);flex-wrap:wrap}
+.key i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.pane{display:flex;flex-direction:column;gap:12px}
+.qbtn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:4px 10px;cursor:pointer}
+.qbtn:hover{border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:transparent;color:var(--fg2);border-radius:999px;padding:3px 10px;cursor:pointer}
+.chip i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.chip[aria-pressed="true"]{color:var(--fg);border-color:var(--fg2);font-weight:500}
+.qbtn:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+select{font:inherit;font-size:14px;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
+:root{--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;--c6:#008300;--c7:#6250d6;--c8:#e34948}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#008300;--c7:#9085e9;--c8:#e66767}}
+:root[data-theme="dark"]{--c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#008300;--c7:#9085e9;--c8:#e66767}
+.fgroup{display:flex;flex-direction:column;gap:4px;padding-block:6px;border-top:1px solid var(--line)}
+.fgroup:first-child{border-top:0}
+.frow{display:grid;grid-template-columns:7.5em 1fr;gap:10px;align-items:center;font-size:13px}
+.frow .lab{color:var(--fg);font-weight:500}
+.stack{display:flex;height:22px;gap:2px;border-radius:4px;overflow:hidden;min-width:0}
+.stack span{display:block;height:100%;min-width:2px}
+.wbar{display:grid;grid-template-columns:9em 1fr 6.5em;gap:8px;align-items:center;font-size:12.5px;color:var(--fg2)}
+.wbar .track{height:12px;background:var(--line);border-radius:3px;overflow:hidden}
+.wbar .fill{height:100%;background:var(--accent);border-radius:3px}
+.wbar .v{font-variant-numeric:tabular-nums;text-align:right}
+.fgrid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:20px}
+@media (max-width:760px){.fgrid{grid-template-columns:1fr}}
+.seg.segwrap{flex-wrap:wrap}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:1px}
+.chip:has(input:checked){color:var(--fg);border-color:var(--fg2);font-weight:500}
+.chip:not(:has(input:checked)) i{background:var(--line)!important}
+svg text{font-family:var(--font-body)}
+.src{font-size:12.5px;color:var(--muted)}
+@media (max-width:520px){.legend{margin-left:0}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">兒童及少年保護｜受虐人數｜民國104–113年（2015–2024）</div>
+    <h1>各縣市兒少受虐人數，十年一覽</h1>
+    <p class="sub">全國 22 縣市逐年受虐兒童少年人數。顏色越深代表人數越多；可切換成「各縣市自身比較」看每個縣市自己的高低起伏。下方折線圖可自選縣市疊在一起比較（預設六都）；「男女與原住民」分頁則看單一縣市的細項，點熱度表任一列也會切換到該縣市。</p>
+  </header>
+
+  <section class="summary" id="summary"></section>
+
+  <div class="note">注意：105→106 年（2016→2017）全國人數從 9,461 人降到 4,135 人，107→108 年（2018→2019）又回升到 11,113 人。原始檔沒有說明原因，106–107 年可能與統計口徑或通報制度調整有關，跨越這兩年比較時請保守解讀。表中這兩年以虛線框標示。</div>
+
+  <section class="panel">
+    <div class="controls">
+      <h2 style="margin-right:8px">縣市 × 年度熱度表</h2>
+      <div class="seg" role="group" aria-label="顏色模式">
+        <button id="m-abs" aria-pressed="true">實際人數</button>
+        <button id="m-rel" aria-pressed="false">各縣市自身比較</button>
+      </div>
+      <div class="seg" role="group" aria-label="排序">
+        <button id="s-2024" aria-pressed="true">依 113 年排序</button>
+        <button id="s-geo" aria-pressed="false">依行政區順序</button>
+      </div>
+      <div class="legend"><span id="lg-lo">少</span><div class="bar" id="lg-bar"></div><span id="lg-hi">多</span></div>
+    </div>
+    <div class="scroll"><table id="heat"></table></div>
+    <div class="hint" id="hint">「實際人數」用平方根色階，讓人數少的縣市也看得出差異。最右欄為 108→113 年（2019→2024）變化。</div>
+  </section>
+
+  <section class="panel" id="detail">
+    <div class="controls">
+      <div class="seg" role="tablist" aria-label="圖表分頁">
+        <button id="tab-cmp" role="tab" aria-pressed="true">縣市比較</button>
+        <button id="tab-sex" role="tab" aria-pressed="false">男女與原住民</button>
+      </div>
+    </div>
+    <div id="pane-cmp" class="pane">
+      <div class="controls">
+        <h2 style="margin-right:4px">各縣市歷年受虐人數</h2>
+        <button class="qbtn" id="q-six">六都</button>
+        <button class="qbtn" id="q-top">113 年前五名</button>
+        <button class="qbtn" id="q-clr">清除</button>
+        <span class="hint" id="cmp-msg">點下方縣市加入或移除，最多同時 8 個</span>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="scroll"><svg id="cmp" viewBox="0 0 900 340" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="縣市比較折線圖"></svg></div>
+    </div>
+    <div id="pane-sex" class="pane" hidden>
+      <div class="detail-head">
+        <label for="d-sel" class="hint">縣市</label>
+        <select id="d-sel"></select>
+        <h2 id="d-name"></h2>
+        <div class="key">
+          <span><i style="background:var(--accent)"></i>合計</span>
+          <span><i style="background:var(--female)"></i>女</span>
+          <span><i style="background:var(--male)"></i>男</span>
+          <span><i style="background:var(--muted);height:0;border-top:2px dashed var(--muted)"></i>原住民</span>
+        </div>
+      </div>
+      <div class="scroll"><svg id="chart" viewBox="0 0 900 300" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="縣市男女趨勢圖"></svg></div>
+    </div>
+  </section>
+
+  <section class="panel" id="field">
+    <div class="controls">
+      <h2 style="margin-right:4px">家外場域</h2>
+      <div class="seg" role="tablist" aria-label="家外場域分頁">
+        <button id="ft-mohw" aria-pressed="true">各場域個案（衛福部）</button>
+        <button id="ft-moe" aria-pressed="false">幼兒園裁罰（教育部）</button>
+      </div>
+    </div>
+    <div id="fp-mohw" class="pane">
+      <p class="hint" style="margin:0">110–112 年（2021–2023）全國數字，沒有分縣市。學校場域不含學生同儕間案件。</p>
+      <div class="controls">
+        <span class="hint">指標</span>
+        <div class="seg" role="group" aria-label="指標">
+          <button id="fm-case" aria-pressed="true">個案數</button>
+          <button id="fm-rep" aria-pressed="false">通報件數</button>
+        </div>
+        <span class="hint" style="margin-left:8px">場域</span>
+        <div class="chips" id="fchips"></div>
+      </div>
+      <div class="scroll"><svg id="fbar" viewBox="0 0 900 300" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="各場域歷年個案數"></svg></div>
+      <div class="controls">
+        <span class="hint">細項（110–112 合計）</span>
+        <div class="seg" role="group" aria-label="細項">
+          <button id="fd-type" aria-pressed="true">受虐類型</button>
+          <button id="fd-who" aria-pressed="false">施虐者身分</button>
+        </div>
+        <div class="key" id="fkey"></div>
+      </div>
+      <div id="fdetail"></div>
+      <div class="note" id="fnote"></div>
+    </div>
+    <div id="fp-moe" class="pane" hidden>
+      <p class="hint" style="margin:0">違反《幼兒教育及照顧法》《教保服務人員條例》違法對待幼兒的裁罰人數，107 年 6 月 27 日至 114 年底，全國。</p>
+      <div class="controls">
+        <span class="hint">類型</span>
+        <div class="chips" id="mchips"></div>
+        <button class="qbtn" id="m-all">全選</button>
+      </div>
+      <div class="scroll"><svg id="mbar" viewBox="0 0 900 320" style="width:100%;min-width:560px;height:auto;display:block" role="img" aria-label="幼兒園裁罰人數"></svg></div>
+      <div class="note">112 年（2023）起法規修正，裁罰範圍從「體罰、不當管教、性騷擾」擴大為再加上身心虐待、霸凌及其他身心暴力或不當對待行為，對象也增加教師。112 年前後的數字不宜直接比較。</div>
+    </div>
+  </section>
+
+
+  <section class="panel" id="fcounty">
+    <div>
+      <div class="eyebrow">托育與教保場域｜依法公布的裁罰紀錄</div>
+      <h2 style="font-family:var(--font-display);font-size:22px;margin-top:2px">各縣市場域裁罰件數</h2>
+      <p class="sub" style="margin-top:4px">保母、托嬰中心等資料來自社家署「全國違反兒少法公布」名單；幼兒園資料來自教育部「全國教保服務機構裁罰公布」。單位是裁罰紀錄筆數，不是受虐人數。</p>
+    </div>
+    <div class="controls">
+      <span class="hint">場域</span>
+      <div class="seg segwrap" role="group" aria-label="場域" id="f-set"></div>
+    </div>
+    <div class="controls">
+      <span class="hint">違規類型</span>
+      <div class="chips" id="f-sub"></div>
+      <div class="seg" role="group" aria-label="違規範圍" id="f-ab"></div>
+    </div>
+    <div class="controls">
+      <span class="hint">期間（裁罰年度）</span>
+      <select id="f-from" aria-label="起始年"></select><span class="hint">至</span><select id="f-to" aria-label="結束年"></select>
+      <span class="hint" id="f-total"></span>
+    </div>
+    <div class="fgrid">
+      <div style="min-width:0"><div class="hint" style="margin-bottom:4px">各縣市件數（期間合計）</div><div class="scroll"><svg id="f-bar" style="width:100%;min-width:420px;display:block" role="img" aria-label="各縣市裁罰件數"></svg></div></div>
+      <div style="min-width:0"><div class="hint" style="margin-bottom:4px">全國逐年件數</div><div class="scroll"><svg id="f-year" style="width:100%;min-width:300px;display:block" role="img" aria-label="全國逐年裁罰件數"></svg></div></div>
+    </div>
+    <div class="note" id="f-note"></div>
+  </section>
+  <div class="src">資料來源：受虐人數為各直轄市、縣市政府「兒童及少年保護－受虐人數」統計表（單位：人）；家外場域為衛生福利部保護服務司「110-112家內、家外數據圖表」；幼兒園裁罰為教育部提供、社家署兒少統計專區公布之裁罰統計。場域數字由 PDF 圖表擷取，正式引用前請以原始檔核對。「各縣市場域裁罰件數」取自衛福部社家署 CRC 資訊網「全國違反兒少法公布」及教育部全國教保資訊網「裁罰紀錄查詢」，於 2026 年 11 月 5 日逐筆彙整（單位：筆）。</div>
+</div>
+<div id="tip"></div>
+
+<script>
+const RAW = {"years":[2015,2016,2017,2018,2019,2020,2021,2022,2023,2024],"data":{"總計":{"2015":[9604,4649,4955,697],"2016":[9461,4156,5305,755],"2017":[4135,2025,2110,450],"2018":[4175,2081,2094,396],"2019":[11113,4832,6281,1130],"2020":[12610,5475,7135,1367],"2021":[11523,5108,6415,1296],"2022":[11950,5281,6669,1330],"2023":[12646,5649,6997,1301],"2024":[10810,4836,5974,1015]},"新北市":{"2015":[1509,708,801,54],"2016":[1295,522,773,59],"2017":[702,359,343,39],"2018":[712,356,356,44],"2019":[1956,850,1106,105],"2020":[2110,864,1246,95],"2021":[2018,842,1176,115],"2022":[2142,894,1248,122],"2023":[1936,821,1115,100],"2024":[2222,974,1248,130]},"臺北市":{"2015":[2258,1194,1064,8],"2016":[1872,932,940,25],"2017":[262,132,130,12],"2018":[395,202,193,9],"2019":[829,380,449,22],"2020":[1020,489,531,25],"2021":[984,454,530,25],"2022":[911,391,520,18],"2023":[1068,473,595,36],"2024":[1077,498,579,26]},"桃園市":{"2015":[1043,407,636,131],"2016":[1007,400,607,137],"2017":[559,295,264,89],"2018":[510,250,260,77],"2019":[1592,752,840,231],"2020":[1808,845,963,261],"2021":[1288,561,727,237],"2022":[1395,622,773,251],"2023":[1521,721,800,256],"2024":[1050,491,559,158]},"臺中市":{"2015":[636,335,301,38],"2016":[899,426,473,44],"2017":[621,308,313,52],"2018":[534,272,262,30],"2019":[1185,494,691,76],"2020":[1202,512,690,84],"2021":[1401,662,739,107],"2022":[2023,1018,1005,108],"2023":[2074,996,1078,117],"2024":[1339,654,685,75]},"臺南市":{"2015":[375,177,198,12],"2016":[556,234,322,13],"2017":[238,118,120,5],"2018":[318,174,144,10],"2019":[688,274,414,16],"2020":[818,341,477,35],"2021":[753,309,444,43],"2022":[707,329,378,20],"2023":[804,351,453,27],"2024":[572,271,301,24]},"高雄市":{"2015":[860,409,451,53],"2016":[1241,531,710,65],"2017":[611,292,319,44],"2018":[580,305,275,23],"2019":[1566,711,855,124],"2020":[1620,792,828,96],"2021":[1622,805,817,105],"2022":[1278,568,710,86],"2023":[1489,717,772,92],"2024":[1157,542,615,73]},"宜蘭縣":{"2015":[183,89,94,24],"2016":[146,52,94,23],"2017":[57,21,36,3],"2018":[46,18,28,4],"2019":[169,63,106,19],"2020":[161,68,93,13],"2021":[163,62,101,24],"2022":[140,49,91,29],"2023":[170,63,107,12],"2024":[141,52,89,13]},"新竹縣":{"2015":[116,62,54,32],"2016":[207,92,115,49],"2017":[104,47,57,13],"2018":[106,56,50,23],"2019":[334,139,195,76],"2020":[343,153,190,47],"2021":[239,103,136,46],"2022":[284,112,172,67],"2023":[307,133,174,52],"2024":[416,181,235,71]},"苗栗縣":{"2015":[251,142,109,24],"2016":[179,78,101,24],"2017":[53,28,25,6],"2018":[63,24,39,5],"2019":[180,64,116,20],"2020":[201,53,148,23],"2021":[165,53,112,22],"2022":[141,41,100,14],"2023":[160,53,107,18],"2024":[148,46,102,17]},"彰化縣":{"2015":[184,108,76,8],"2016":[304,139,165,3],"2017":[159,60,99,10],"2018":[124,61,63,12],"2019":[431,167,264,11],"2020":[528,208,320,20],"2021":[448,194,254,4],"2022":[467,204,263,17],"2023":[577,247,330,18],"2024":[544,226,318,27]},"南投縣":{"2015":[91,52,39,4],"2016":[115,57,58,24],"2017":[55,25,30,9],"2018":[59,26,33,12],"2019":[268,113,155,63],"2020":[355,147,208,58],"2021":[309,139,170,76],"2022":[273,124,149,83],"2023":[299,112,187,89],"2024":[221,101,120,27]},"雲林縣":{"2015":[757,368,389,3],"2016":[444,199,245,1],"2017":[86,42,44,4],"2018":[106,42,64,1],"2019":[239,102,137,8],"2020":[294,121,173,6],"2021":[295,128,167,8],"2022":[309,133,176,4],"2023":[309,123,186,2],"2024":[324,120,204,7]},"嘉義縣":{"2015":[153,84,69,3],"2016":[73,33,40,2],"2017":[42,15,27,1],"2018":[40,21,19,1],"2019":[149,62,87,4],"2020":[229,90,139,9],"2021":[168,54,114,10],"2022":[204,91,113,4],"2023":[248,124,124,16],"2024":[204,98,106,15]},"屏東縣":{"2015":[333,154,179,36],"2016":[345,149,196,59],"2017":[243,112,131,40],"2018":[241,121,120,50],"2019":[573,290,283,85],"2020":[635,292,343,119],"2021":[446,203,243,90],"2022":[445,187,258,60],"2023":[482,205,277,73],"2024":[375,163,212,55]},"臺東縣":{"2015":[106,33,73,58],"2016":[178,61,117,98],"2017":[72,38,34,54],"2018":[33,12,21,22],"2019":[179,68,111,122],"2020":[341,129,212,230],"2021":[265,119,146,152],"2022":[278,134,144,180],"2023":[193,82,111,125],"2024":[107,40,67,68]},"花蓮縣":{"2015":[305,132,173,185],"2016":[175,75,100,101],"2017":[83,40,43,60],"2018":[79,30,49,57],"2019":[184,61,123,111],"2020":[280,114,166,189],"2021":[272,132,140,174],"2022":[306,128,178,213],"2023":[309,133,176,200],"2024":[326,138,188,201]},"澎湖縣":{"2015":[18,13,5,0],"2016":[13,4,9,0],"2017":[6,3,3,0],"2018":[8,3,5,0],"2019":[31,13,18,2],"2020":[36,9,27,0],"2021":[22,2,20,1],"2022":[31,8,23,2],"2023":[25,7,18,3],"2024":[31,6,25,2]},"基隆市":{"2015":[278,115,163,23],"2016":[243,101,142,23],"2017":[73,38,35,1],"2018":[83,33,50,9],"2019":[202,79,123,16],"2020":[298,117,181,32],"2021":[214,91,123,22],"2022":[230,89,141,35],"2023":[267,100,167,37],"2024":[149,53,96,11]},"新竹市":{"2015":[52,22,30,1],"2016":[74,32,42,2],"2017":[57,24,33,7],"2018":[89,46,43,6],"2019":[200,64,136,15],"2020":[164,46,118,20],"2021":[294,129,165,29],"2022":[190,68,122,13],"2023":[233,110,123,24],"2024":[219,92,127,12]},"嘉義市":{"2015":[71,32,39,0],"2016":[56,24,32,3],"2017":[33,17,16,0],"2018":[32,20,12,1],"2019":[103,52,51,3],"2020":[116,56,60,3],"2021":[117,48,69,4],"2022":[146,74,72,1],"2023":[119,56,63,2],"2024":[127,60,67,0]},"金門縣":{"2015":[22,13,9,0],"2016":[36,13,23,0],"2017":[15,8,7,0],"2018":[13,5,8,0],"2019":[52,33,19,1],"2020":[42,23,19,1],"2021":[33,14,19,1],"2022":[41,15,26,0],"2023":[50,21,29,2],"2024":[46,24,22,0]},"連江縣":{"2015":[3,0,3,0],"2016":[3,2,1,0],"2017":[4,3,1,1],"2018":[4,4,0,0],"2019":[3,1,2,0],"2020":[9,6,3,1],"2021":[7,4,3,1],"2022":[9,2,7,3],"2023":[6,1,5,0],"2024":[15,6,9,3]}}};
+const YEARS = RAW.years;
+const D = RAW.data;
+const GEO = Object.keys(D).filter(k=>k!=='總計');
+const roc = y => (y-1911)+'年';
+const fmt = n => n==null?'–':n.toLocaleString('zh-TW');
+const BREAK = new Set([2017,2018]);
+
+const RAMP_L = ['#eef5fe','#cde2fb','#9ec5f4','#6da7ec','#3987e5','#256abf','#184f95','#0d366b'];
+const RAMP_D = ['#1d2836','#1d3352','#184f95','#1c5cab','#2a78d6','#5598e7','#9ec5f4','#e1eefd'];
+const isDark = () => {
+  const t=document.documentElement.dataset.theme;
+  if(t) return t==='dark';
+  return matchMedia('(prefers-color-scheme: dark)').matches;
+};
+function hex2rgb(h){return [1,3,5].map(i=>parseInt(h.slice(i,i+2),16))}
+function rampColor(t){
+  const R=isDark()?RAMP_D:RAMP_L; t=Math.max(0,Math.min(1,t));
+  const p=t*(R.length-1), i=Math.min(Math.floor(p),R.length-2), f=p-i;
+  const a=hex2rgb(R[i]), b=hex2rgb(R[i+1]);
+  const c=a.map((v,k)=>Math.round(v+(b[k]-v)*f));
+  return {css:`rgb(${c})`, lum:(0.2126*c[0]+0.7152*c[1]+0.0722*c[2])/255};
+}
+
+let mode='abs', sort='2024', sel='總計';
+const maxAll = Math.max(...GEO.flatMap(k=>YEARS.map(y=>D[k][y][0])));
+function t(name,y){
+  const v=D[name][y][0];
+  if(mode==='rel'){const row=YEARS.map(yy=>D[name][yy][0]);const mn=Math.min(...row),mx=Math.max(...row);return mx===mn?0.5:(v-mn)/(mx-mn);}
+  if(name==='總計') return null;
+  return Math.sqrt(v/maxAll);
+}
+
+function summary(){
+  const tot=D['總計'], last=YEARS[YEARS.length-1];
+  const top=GEO.slice().sort((a,b)=>D[b][last][0]-D[a][last][0]);
+  const peakY=YEARS.reduce((a,y)=>tot[y][0]>tot[a][0]?y:a,YEARS[0]);
+  const ch=(tot[last][0]-tot[2019][0])/tot[2019][0]*100;
+  const female=tot[last][2]/tot[last][0]*100;
+  const s=document.getElementById('summary');
+  const items=[
+    [fmt(tot[last][0])+' 人','113 年（2024）全國受虐兒少人數'],
+    [roc(peakY)+'　'+fmt(tot[peakY][0]),'十年間全國最高的一年（人）'],
+    [(ch>0?'+':'')+ch.toFixed(1)+'%','108→113 年全國人數變化'],
+    [top.slice(0,3).join('、'),'113 年人數前三名縣市'],
+  ];
+  s.innerHTML=items.map(([b,l])=>`<div class="panel kpi"><b style="${b.length>8?'font-size:21px':''}">${b}</b><span>${l}</span></div>`).join('');
+}
+
+const tip=document.getElementById('tip');
+function showTip(e,html){tip.innerHTML=html;tip.style.opacity=1;const x=Math.min(e.clientX+14,innerWidth-tip.offsetWidth-8);tip.style.left=x+'px';tip.style.top=(e.clientY+14)+'px'}
+function hideTip(){tip.style.opacity=0}
+
+function table(){
+  const last=YEARS[YEARS.length-1];
+  let rows=GEO.slice();
+  if(sort==='2024') rows.sort((a,b)=>D[b][last][0]-D[a][last][0]);
+  const el=document.getElementById('heat');
+  let h='<thead><tr><th class="name">縣市</th>'+YEARS.map(y=>`<th>${y-1911}<br><span style="font-size:11px">${y}</span></th>`).join('')+'<th>108→113</th></tr></thead><tbody>';
+  const rowHtml=(name,cls)=>{
+    let r=`<tr class="row ${cls||''} ${name===sel?'sel':''}" data-name="${name}" tabindex="0"><td class="name">${name}</td>`;
+    for(const y of YEARS){
+      const v=D[name][y][0], tt=t(name,y);
+      let bg='transparent', fg='var(--fg)';
+      if(tt!=null){const c=rampColor(tt);bg=c.css;fg=c.lum<0.5?'#ffffff':'#17202c';}
+      const brk=BREAK.has(y)?'outline:1px dashed var(--muted);outline-offset:-2px;':'';
+      r+=`<td data-y="${y}" style="background:${bg};color:${fg};${brk}${name==='總計'?'font-weight:700;border-bottom:1px solid var(--line);':''}">${fmt(v)}</td>`;
+    }
+    const a=D[name][2019][0], b=D[name][last][0], c=(b-a)/a*100;
+    r+=`<td class="chg">${c>0?'▲':c<0?'▼':''} ${Math.abs(c).toFixed(0)}%</td></tr>`;
+    return r;
+  };
+  h+=rowHtml('總計','total')+'<tr class="sep"><td></td></tr>'+rows.map(n=>rowHtml(n)).join('')+'</tbody>';
+  el.innerHTML=h;
+  el.querySelectorAll('td[data-y]').forEach(td=>{
+    td.addEventListener('mousemove',e=>{
+      const n=td.parentElement.dataset.name,y=+td.dataset.y,v=D[n][y];
+      showTip(e,`<b>${n}　${roc(y)}（${y}）</b><br>合計 ${fmt(v[0])} 人｜男 ${fmt(v[1])}｜女 ${fmt(v[2])}｜原住民 ${fmt(v[3])}`);
+    });
+    td.addEventListener('mouseleave',hideTip);
+  });
+  el.querySelectorAll('tr.row').forEach(tr=>{
+    const go=()=>{sel=tr.dataset.name;document.getElementById('d-sel').value=sel;table();chart();setTab('sex');};
+    tr.addEventListener('click',go);
+    tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});
+  });
+  const bar=document.getElementById('lg-bar');
+  bar.style.background=`linear-gradient(90deg,${[0,.25,.5,.75,1].map(x=>rampColor(x).css).join(',')})`;
+  document.getElementById('lg-lo').textContent=mode==='abs'?'0 人':'該縣市最低';
+  document.getElementById('lg-hi').textContent=mode==='abs'?fmt(maxAll)+' 人':'該縣市最高';
+}
+
+function chart(){
+  const svg=document.getElementById('chart'), n=sel, W=900,H=300,m={l:56,r:96,t:16,b:40};
+  document.getElementById('d-name').textContent='歷年受虐人數（合計／男／女／原住民）';
+  const series=[[0,'var(--accent)','合計',''],[2,'var(--female)','女',''],[1,'var(--male)','男',''],[3,'var(--muted)','原住民','5 4']];
+  const mx=Math.max(...YEARS.map(y=>D[n][y][0]));
+  const step=[1,2,5,10,20,25,50,100,200,250,500,1000,2000,2500,5000].find(s=>mx/s<=5)||5000;
+  const top=Math.ceil(mx/step)*step;
+  const x=i=>m.l+i*(W-m.l-m.r)/(YEARS.length-1), y=v=>m.t+(H-m.t-m.b)*(1-v/top);
+  let g='';
+  // break band
+  const i17=YEARS.indexOf(2017),i18=YEARS.indexOf(2018);
+  g+=`<rect x="${x(i17)-14}" y="${m.t}" width="${x(i18)-x(i17)+28}" height="${H-m.t-m.b}" fill="var(--warn-bg)"/>`;
+  g+=`<text x="${(x(i17)+x(i18))/2}" y="${m.t+14}" text-anchor="middle" font-size="11" fill="var(--warn-fg)">口徑可能不同</text>`;
+  for(let v=0;v<=top;v+=step){g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${fmt(v)}</text>`;}
+  YEARS.forEach((yr,i)=>{g+=`<text x="${x(i)}" y="${H-m.b+18}" text-anchor="middle" font-size="12" fill="var(--muted)">${yr-1911}</text><text x="${x(i)}" y="${H-m.b+32}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${yr}</text>`});
+  const ends=[];
+  for(const [k,col,lab,dash] of series){
+    const pts=YEARS.map((yr,i)=>[x(i),y(D[n][yr][k])]);
+    g+=`<polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="${k===0?2.5:2}" stroke-dasharray="${dash}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const lp=pts[pts.length-1];
+    g+=`<circle cx="${lp[0]}" cy="${lp[1]}" r="4" fill="${col}" stroke="var(--surface)" stroke-width="2"/>`;
+    ends.push({y:lp[1],lab:`${lab} ${fmt(D[n][YEARS[YEARS.length-1]][k])}`});
+  }
+  // de-collide end labels
+  ends.sort((a,b)=>a.y-b.y); for(let i=1;i<ends.length;i++) if(ends[i].y-ends[i-1].y<14) ends[i].y=ends[i-1].y+14;
+  ends.forEach(e=>g+=`<text x="${W-m.r+8}" y="${e.y+4}" font-size="11.5" fill="var(--fg2)">${e.lab}</text>`);
+  // hover
+  g+=`<line id="cross" x1="0" x2="0" y1="${m.t}" y2="${H-m.b}" stroke="var(--fg2)" stroke-width="1" opacity="0"/>`;
+  g+=`<rect id="hit" x="${m.l-20}" y="${m.t}" width="${W-m.l-m.r+40}" height="${H-m.t-m.b}" fill="transparent"/>`;
+  svg.innerHTML=g;
+  const hit=svg.querySelector('#hit'),cross=svg.querySelector('#cross');
+  hit.addEventListener('mousemove',e=>{
+    const r=svg.getBoundingClientRect(), sx=(e.clientX-r.left)*W/r.width;
+    const i=Math.max(0,Math.min(YEARS.length-1,Math.round((sx-m.l)/((W-m.l-m.r)/(YEARS.length-1)))));
+    cross.setAttribute('x1',x(i));cross.setAttribute('x2',x(i));cross.setAttribute('opacity',.5);
+    const v=D[n][YEARS[i]];
+    showTip(e,`<b>${roc(YEARS[i])}（${YEARS[i]}）</b><br>合計 ${fmt(v[0])}｜女 ${fmt(v[2])}｜男 ${fmt(v[1])}｜原住民 ${fmt(v[3])}`);
+  });
+  hit.addEventListener('mouseleave',()=>{cross.setAttribute('opacity',0);hideTip()});
+}
+
+function setSeg(a,b,on){document.getElementById(a).setAttribute('aria-pressed',on);document.getElementById(b).setAttribute('aria-pressed',!on)}
+document.getElementById('m-abs').onclick=()=>{mode='abs';setSeg('m-abs','m-rel',true);table()};
+document.getElementById('m-rel').onclick=()=>{mode='rel';setSeg('m-abs','m-rel',false);table()};
+document.getElementById('s-2024').onclick=()=>{sort='2024';setSeg('s-2024','s-geo',true);table()};
+document.getElementById('s-geo').onclick=()=>{sort='geo';setSeg('s-2024','s-geo',false);table()};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{table();fbar();});
+new MutationObserver(table).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+// ---- 縣市比較 ----
+const SIX=['臺北市','新北市','桃園市','臺中市','臺南市','高雄市'];
+const slot={}; // name -> 1..8, color follows the county
+let picked=[];
+function setPicked(list){picked=[];for(const k in slot)delete slot[k];list.forEach(addPick);renderCmp();}
+function addPick(n){if(picked.includes(n)||picked.length>=8)return false;const used=new Set(Object.values(slot));let s=1;while(used.has(s))s++;slot[n]=s;picked.push(n);return true;}
+function delPick(n){picked=picked.filter(x=>x!==n);delete slot[n];}
+function chips(){
+  const el=document.getElementById('chips');
+  el.innerHTML=GEO.map(n=>`<button class="chip" data-n="${n}" aria-pressed="${picked.includes(n)}"><i style="${slot[n]?`background:var(--c${slot[n]})`:''}"></i>${n}</button>`).join('');
+  el.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{
+    const n=b.dataset.n, msg=document.getElementById('cmp-msg');
+    if(picked.includes(n)){delPick(n);msg.textContent='點下方縣市加入或移除，最多同時 8 個';}
+    else if(!addPick(n)){msg.textContent='已選 8 個，請先移除一個再加入';return;}
+    renderCmp();
+  });
+}
+function renderCmp(){chips();cmpChart();}
+function cmpChart(){
+  const svg=document.getElementById('cmp'),W=900,H=340,m={l:56,r:100,t:16,b:40};
+  if(!picked.length){svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="14" fill="var(--muted)">請在上方點選縣市，或按「六都」</text>`;return;}
+  const mx=Math.max(...picked.flatMap(n=>YEARS.map(y=>D[n][y][0])));
+  const step=[1,2,5,10,20,25,50,100,200,250,500,1000].find(s=>mx/s<=5)||1000, top=Math.ceil(mx/step)*step;
+  const x=i=>m.l+i*(W-m.l-m.r)/(YEARS.length-1), y=v=>m.t+(H-m.t-m.b)*(1-v/top);
+  const i17=YEARS.indexOf(2017),i18=YEARS.indexOf(2018);
+  let g=`<rect x="${x(i17)-14}" y="${m.t}" width="${x(i18)-x(i17)+28}" height="${H-m.t-m.b}" fill="var(--warn-bg)"/><text x="${(x(i17)+x(i18))/2}" y="${m.t+14}" text-anchor="middle" font-size="11" fill="var(--warn-fg)">口徑可能不同</text>`;
+  for(let v=0;v<=top;v+=step)g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${fmt(v)}</text>`;
+  YEARS.forEach((yr,i)=>g+=`<text x="${x(i)}" y="${H-m.b+18}" text-anchor="middle" font-size="12" fill="var(--muted)">${yr-1911}</text><text x="${x(i)}" y="${H-m.b+32}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${yr}</text>`);
+  const ends=[];
+  picked.forEach(n=>{
+    const col=`var(--c${slot[n]})`, pts=YEARS.map((yr,i)=>[x(i),y(D[n][yr][0])]);
+    g+=`<polyline class="ln" data-n="${n}" points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const lp=pts[pts.length-1];
+    g+=`<circle cx="${lp[0]}" cy="${lp[1]}" r="4" fill="${col}" stroke="var(--surface)" stroke-width="2"/>`;
+    ends.push({y:lp[1],lab:`${n} ${fmt(D[n][YEARS[YEARS.length-1]][0])}`});
+  });
+  ends.sort((a,b)=>a.y-b.y);for(let i=1;i<ends.length;i++)if(ends[i].y-ends[i-1].y<14)ends[i].y=ends[i-1].y+14;
+  ends.forEach(e=>g+=`<text x="${W-m.r+8}" y="${e.y+4}" font-size="11.5" fill="var(--fg2)">${e.lab}</text>`);
+  g+=`<line id="cx" x1="0" x2="0" y1="${m.t}" y2="${H-m.b}" stroke="var(--fg2)" opacity="0"/><g id="cdots"></g><rect id="chit" x="${m.l-20}" y="${m.t}" width="${W-m.l-m.r+40}" height="${H-m.t-m.b}" fill="transparent"/>`;
+  svg.innerHTML=g;
+  const hit=svg.querySelector('#chit'),cx=svg.querySelector('#cx'),dots=svg.querySelector('#cdots');
+  hit.addEventListener('mousemove',e=>{
+    const r=svg.getBoundingClientRect(),sx=(e.clientX-r.left)*W/r.width;
+    const i=Math.max(0,Math.min(YEARS.length-1,Math.round((sx-m.l)/((W-m.l-m.r)/(YEARS.length-1)))));
+    cx.setAttribute('x1',x(i));cx.setAttribute('x2',x(i));cx.setAttribute('opacity',.5);
+    dots.innerHTML=picked.map(n=>`<circle cx="${x(i)}" cy="${y(D[n][YEARS[i]][0])}" r="4" fill="var(--c${slot[n]})" stroke="var(--surface)" stroke-width="2"/>`).join('');
+    const rows=picked.slice().sort((a,b)=>D[b][YEARS[i]][0]-D[a][YEARS[i]][0]).map(n=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c${slot[n]});margin-right:5px"></span>${n}　${fmt(D[n][YEARS[i]][0])}`).join('<br>');
+    showTip(e,`<b>${roc(YEARS[i])}（${YEARS[i]}）</b><br>${rows}`);
+  });
+  hit.addEventListener('mouseleave',()=>{cx.setAttribute('opacity',0);dots.innerHTML='';hideTip()});
+}
+function setTab(k){
+  document.getElementById('pane-cmp').hidden=k!=='cmp';document.getElementById('pane-sex').hidden=k!=='sex';
+  setSeg('tab-cmp','tab-sex',k==='cmp');
+}
+document.getElementById('tab-cmp').onclick=()=>setTab('cmp');
+document.getElementById('tab-sex').onclick=()=>setTab('sex');
+document.getElementById('q-six').onclick=()=>setPicked(SIX);
+document.getElementById('q-top').onclick=()=>{const L=YEARS[YEARS.length-1];setPicked(GEO.slice().sort((a,b)=>D[b][L][0]-D[a][L][0]).slice(0,5));};
+document.getElementById('q-clr').onclick=()=>setPicked([]);
+const dsel=document.getElementById('d-sel');
+dsel.innerHTML=['總計',...GEO].map(n=>`<option value="${n}">${n==='總計'?'全國':n}</option>`).join('');
+dsel.onchange=()=>{sel=dsel.value;table();chart();};
+setPicked(SIX);
+
+// ---- 家外場域（衛福部 110–112）----
+const FY=[2021,2022,2023];
+const F={
+ '學校':{case:[194,357,424],rep:[907,1330,1656]},
+ '托育':{case:[56,127,158],rep:[72,248,287]},
+ '補教':{case:[41,59,102],rep:[194,221,399]},
+ '幼教':{case:[26,88,null],rep:[149,133,null]},
+ '安置':{case:[34,42,30],rep:[75,88,120]},
+ '家內':{case:[6995,7385,8164],rep:[24521,24851,26559]}};
+const FDESC={'學校':'學校（不含同儕）','托育':'托育（保母、托嬰中心）','補教':'補教（補習班、課照班）','幼教':'幼教（幼兒園）','安置':'安置（機構、寄養）','家內':'家內（對照）'};
+const TYPES=['身體不當對待','疏忽','性不當對待','精神不當對待','目睹家暴','遺棄'];
+const FT={'學校':[620,0,274,81,0,0],'托育':[227,101,4,9,0,0],'補教':[125,0,77,0,0,0],'幼教':[83,14,8,9,0,0],'安置':[73,11,13,9,0,0],'家內':[14606,3576,2520,1451,271,120]};
+const FW={'學校':[['學校教師',941],['社團老師／教練',234]],'托育':[['居家式托育人員（保母）',211],['托嬰中心人員',130]],'補教':[['補習班教師',145],['課照班／中心教師',57]],'幼教':[['教保人員',103],['負責人',11]],'安置':[['機構工作人員',86],['寄養家庭',14],['機構負責人',6]],'家內':[['（養）父母',18096],['其他親屬',1338],['同居人',1129],['（外）祖父母',1029],['手足',952]]};
+let fMetric='case', fDet='type', fSel=['學校','托育','補教','幼教','安置'];
+function fchips(){
+  const el=document.getElementById('fchips');
+  el.innerHTML=Object.keys(F).map(k=>`<button class="chip" data-k="${k}" aria-pressed="${fSel.includes(k)}">${k}</button>`).join('');
+  el.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const k=b.dataset.k;fSel=fSel.includes(k)?fSel.filter(x=>x!==k):Object.keys(F).filter(x=>fSel.includes(x)||x===k);fRender();});
+}
+function yrColors(){return isDark()?['#1c5cab','#5598e7','#b7d3f6']:['#9ec5f4','#3987e5','#184f95']}
+function fbar(){
+  const svg=document.getElementById('fbar'),W=900,H=300,m={l:60,r:16,t:30,b:40};
+  if(!fSel.length){svg.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="14" fill="var(--muted)">請至少選一個場域</text>`;return;}
+  const vals=fSel.flatMap(k=>F[k][fMetric].filter(v=>v!=null));
+  const mx=Math.max(...vals);
+  const step=[5,10,20,25,50,100,200,250,500,1000,2000,2500,5000,10000].find(s=>mx/s<=5)||10000, top=Math.ceil(mx/step)*step;
+  const y=v=>m.t+(H-m.t-m.b)*(1-v/top), gw=(W-m.l-m.r)/fSel.length, bw=Math.min(44,(gw-30)/3);
+  const C=yrColors();
+  let g='';
+  for(let v=0;v<=top;v+=step)g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${fmt(v)}</text>`;
+  g+=FY.map((yr,i)=>`<rect x="${m.l+i*96}" y="6" width="12" height="12" rx="2" fill="${C[i]}"/><text x="${m.l+i*96+17}" y="16" font-size="12" fill="var(--fg2)">${yr-1911}年（${yr}）</text>`).join('');
+  fSel.forEach((k,gi)=>{
+    const cx=m.l+gi*gw+gw/2, x0=cx-1.5*bw-2;
+    F[k][fMetric].forEach((v,i)=>{
+      const bx=x0+i*(bw+2);
+      if(v==null){g+=`<text x="${bx+bw/2}" y="${y(0)-6}" text-anchor="middle" font-size="11" fill="var(--muted)">無</text>`;return;}
+      const by=y(v),h=y(0)-by,r=Math.min(4,h);
+      g+=`<path class="fb" data-k="${k}" data-i="${i}" d="M${bx},${y(0)} V${by+r} Q${bx},${by} ${bx+r},${by} H${bx+bw-r} Q${bx+bw},${by} ${bx+bw},${by+r} V${y(0)} Z" fill="${C[i]}"/>`;
+      g+=`<text x="${bx+bw/2}" y="${by-5}" text-anchor="middle" font-size="11" fill="var(--fg2)">${fmt(v)}</text>`;
+    });
+    g+=`<text x="${cx}" y="${H-m.b+20}" text-anchor="middle" font-size="13" fill="var(--fg)">${FDESC[k]}</text>`;
+  });
+  svg.innerHTML=g;
+  svg.querySelectorAll('.fb').forEach(p=>{p.style.cursor='default';p.addEventListener('mousemove',e=>{const k=p.dataset.k,i=+p.dataset.i;showTip(e,`<b>${FDESC[k]}　${FY[i]-1911}年（${FY[i]}）</b><br>${fMetric==='case'?'個案數':'通報件數'} ${fmt(F[k][fMetric][i])}`)});p.addEventListener('mouseleave',hideTip)});
+}
+function fdetail(){
+  const el=document.getElementById('fdetail'),key=document.getElementById('fkey'),note=document.getElementById('fnote');
+  if(fDet==='type'){
+    key.innerHTML=TYPES.map((t,i)=>`<span><i style="background:var(--c${i+1});height:10px;width:10px;border-radius:2px"></i>${t}</span>`).join('');
+    el.innerHTML=fSel.map(k=>{const a=FT[k],s=a.reduce((x,y)=>x+y,0);
+      return `<div class="frow"><span class="lab">${k}</span><div class="stack">${a.map((v,i)=>v?`<span class="seg-t" data-k="${k}" data-i="${i}" style="width:${v/s*100}%;background:var(--c${i+1})"></span>`:'').join('')}</div></div>`}).join('');
+    el.querySelectorAll('.seg-t').forEach(sp=>{sp.addEventListener('mousemove',e=>{const k=sp.dataset.k,i=+sp.dataset.i,a=FT[k],s=a.reduce((x,y)=>x+y,0);showTip(e,`<b>${FDESC[k]}</b><br>${TYPES[i]} ${fmt(a[i])} 人（${(a[i]/s*100).toFixed(0)}%）`)});sp.addEventListener('mouseleave',hideTip)});
+    el.style.cssText='display:flex;flex-direction:column;gap:8px';
+    note.textContent='托育場域「疏忽」約占三成，明顯高於其他場域；學校與補教場域「性不當對待」比例也偏高（約 28%、38%）。';
+  }else{
+    key.innerHTML='';
+    el.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:4px 24px';
+    el.innerHTML=fSel.map(k=>{const a=FW[k],s=a.reduce((x,y)=>x+y[1],0);
+      return `<div class="fgroup"><span style="font-weight:700;font-size:13.5px">${FDESC[k]}</span>${a.map(([n,v])=>`<div class="wbar"><span>${n}</span><div class="track"><div class="fill" style="width:${v/s*100}%"></div></div><span class="v">${fmt(v)}（${(v/s*100).toFixed(0)}%）</span></div>`).join('')}</div>`}).join('');
+    note.textContent='學校場域施虐者合計 1,175 人，多於該場域 975 個案；可能是一案有多名施虐者，也可能是 PDF 擷取誤差，請以原始檔核對。托育場域中，居家式托育人員（保母）案件多於托嬰中心人員。';
+  }
+}
+function fRender(){fchips();fbar();fdetail();}
+document.getElementById('fm-case').onclick=()=>{fMetric='case';setSeg('fm-case','fm-rep',true);fbar()};
+document.getElementById('fm-rep').onclick=()=>{fMetric='rep';setSeg('fm-case','fm-rep',false);fbar()};
+document.getElementById('fd-type').onclick=()=>{fDet='type';setSeg('fd-type','fd-who',true);fdetail()};
+document.getElementById('fd-who').onclick=()=>{fDet='who';setSeg('fd-type','fd-who',false);fdetail()};
+// ---- 幼兒園裁罰（教育部）----
+const MY=[2018,2019,2020,2021,2022,2023,2024,2025];
+const MT=['不當管教','體罰','其他身心暴力或不當對待','性騷擾','身心虐待','霸凌'];
+const MD={2018:[0,0,0,0,0,0],2019:[5,5,0,0,0,0],2020:[4,2,0,0,0,0],2021:[3,8,0,0,0,0],2022:[0,1,0,0,0,0],2023:[44,27,16,3,0,0],2024:[106,33,31,4,2,1],2025:[175,38,44,2,3,0]};
+let mSel=MT.slice();
+function mchips(){
+  const el=document.getElementById('mchips');
+  el.innerHTML=MT.map((t,i)=>`<button class="chip" data-i="${i}" aria-pressed="${mSel.includes(t)}"><i style="${mSel.includes(t)?`background:var(--c${i+1})`:''}"></i>${t}</button>`).join('');
+  el.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const t=MT[+b.dataset.i];mSel=mSel.includes(t)?mSel.filter(x=>x!==t):MT.filter(x=>mSel.includes(x)||x===t);mchips();mbar();});
+}
+function mbar(){
+  const svg=document.getElementById('mbar'),W=900,H=320,m={l:50,r:16,t:20,b:44};
+  const idx=MT.map((t,i)=>i).filter(i=>mSel.includes(MT[i]));
+  const tot=MY.map(y=>idx.reduce((s,i)=>s+MD[y][i],0));
+  const mx=Math.max(10,...tot), step=[2,5,10,20,25,50,100].find(s=>mx/s<=5)||100, top=Math.ceil(mx/step)*step;
+  const y=v=>m.t+(H-m.t-m.b)*(1-v/top), gw=(W-m.l-m.r)/MY.length, bw=Math.min(54,gw*0.55);
+  let g='';
+  for(let v=0;v<=top;v+=step)g+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${m.l-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${v}</text>`;
+  const bx5=m.l+5*gw;
+  g+=`<line x1="${bx5}" x2="${bx5}" y1="${m.t}" y2="${H-m.b}" stroke="var(--warn-fg)" stroke-dasharray="4 4"/><text x="${bx5+6}" y="${m.t+12}" font-size="11.5" fill="var(--warn-fg)">112 年起裁罰範圍擴大</text>`;
+  MY.forEach((yr,j)=>{
+    const x=m.l+j*gw+(gw-bw)/2; let acc=0; const segs=idx.filter(i=>MD[yr][i]>0);
+    segs.forEach((i,si)=>{const v=MD[yr][i],y1=y(acc+v),y0=y(acc);const h=y0-y1-(si>0?2:0);const last=si===segs.length-1,r=last?Math.min(4,h):0;
+      g+=`<path class="mb" data-y="${yr}" d="M${x},${y0-(si>0?2:0)} V${y1+r} ${r?`Q${x},${y1} ${x+r},${y1} H${x+bw-r} Q${x+bw},${y1} ${x+bw},${y1+r}`:`H${x+bw}`} V${y0-(si>0?2:0)} Z" fill="var(--c${i+1})"/>`;acc+=v;});
+    g+=`<text x="${x+bw/2}" y="${y(tot[j])-6}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--fg)">${tot[j]}</text>`;
+    g+=`<text x="${x+bw/2}" y="${H-m.b+18}" text-anchor="middle" font-size="12" fill="var(--muted)">${yr-1911}</text><text x="${x+bw/2}" y="${H-m.b+32}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${yr}</text>`;
+    g+=`<rect class="mh" data-y="${yr}" x="${m.l+j*gw}" y="${m.t}" width="${gw}" height="${H-m.t-m.b}" fill="transparent"/>`;
+  });
+  svg.innerHTML=g;
+  svg.querySelectorAll('.mh').forEach(r=>{r.addEventListener('mousemove',e=>{const yr=+r.dataset.y;const rows=idx.filter(i=>MD[yr][i]>0).map(i=>`<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--c${i+1});margin-right:5px"></span>${MT[i]} ${MD[yr][i]}`).join('<br>')||'無裁罰';showTip(e,`<b>${yr-1911}年（${yr}）合計 ${idx.reduce((s,i)=>s+MD[yr][i],0)} 人</b><br>${rows}${yr===2018?'<br>（自 6/27 起計）':''}`)});r.addEventListener('mouseleave',hideTip)});
+}
+document.getElementById('m-all').onclick=()=>{mSel=MT.slice();mchips();mbar();};
+function setFTab(k){document.getElementById('fp-mohw').hidden=k!=='mohw';document.getElementById('fp-moe').hidden=k!=='moe';setSeg('ft-mohw','ft-moe',k==='mohw');}
+document.getElementById('ft-mohw').onclick=()=>setFTab('mohw');
+document.getElementById('ft-moe').onclick=()=>setFTab('moe');
+fRender();mchips();mbar();
+summary();table();chart();
+// ---- 場域裁罰 ----
+const FD = {"sfaa":[["南投縣",2022,"tuoying","a",1],["南投縣",2024,"after","a",1],["南投縣",2024,"tuoying","n",1],["宜蘭縣",2021,"after","a",1],["屏東縣",2026,"home","a",1],["彰化縣",2015,"tuoying","a",1],["彰化縣",2017,"home","a",1],["彰化縣",2019,"after","a",1],["彰化縣",2021,"home","n",1],["彰化縣",2021,"kg","a",1],["彰化縣",2021,"school","a",1],["彰化縣",2022,"tuoying","n",3],["彰化縣",2023,"tuoying","n",2],["彰化縣",2024,"tuoying","n",1],["彰化縣",2025,"tuoying","n",1],["新北市",2019,"after","n",3],["新北市",2020,"after","n",2],["新北市",2021,"after","n",2],["新北市",2021,"home","n",1],["新北市",2022,"after","n",2],["新北市",2022,"home","a",1],["新北市",2023,"after","n",6],["新北市",2023,"cram","n",1],["新北市",2023,"home","n",1],["新北市",2024,"after","n",5],["新北市",2024,"cram","n",5],["新北市",2024,"home","a",2],["新北市",2024,"school","a",1],["新北市",2024,"tuoying","n",3],["新北市",2025,"after","n",1],["新北市",2025,"home","a",1],["新北市",2025,"home","n",1],["新北市",2025,"place","a",1],["新北市",2025,"school","a",2],["新北市",2025,"tuoying","n",2],["新北市",2026,"home","a",1],["桃園市",2014,"after","a",2],["桃園市",2017,"home","n",1],["桃園市",2019,"school","a",2],["桃園市",2022,"home","a",1],["桃園市",2024,"after","n",4],["桃園市",2024,"home","a",1],["桃園市",2025,"after","n",7],["桃園市",2026,"after","a",1],["桃園市",2026,"cram","a",2],["桃園市",2026,"place","a",2],["桃園市",2026,"school","a",2],["桃園市",2026,"tuoying","a",5],["臺中市",2013,"tuoying","n",1],["臺中市",2015,"tuoying","a",1],["臺中市",2015,"tuoying","n",2],["臺中市",2016,"school","a",1],["臺中市",2016,"tuoying","n",2],["臺中市",2017,"home","a",1],["臺中市",2017,"tuoying","n",1],["臺中市",2018,"home","a",1],["臺中市",2018,"kg","a",3],["臺中市",2018,"place","a",1],["臺中市",2018,"school","a",2],["臺中市",2018,"tuoying","a",1],["臺中市",2018,"tuoying","n",1],["臺中市",2019,"home","a",1],["臺中市",2019,"school","a",1],["臺中市",2019,"tuoying","a",1],["臺中市",2020,"cram","a",1],["臺中市",2020,"home","a",4],["臺中市",2020,"kg","a",2],["臺中市",2020,"place","a",2],["臺中市",2020,"school","a",3],["臺中市",2020,"tuoying","a",3],["臺中市",2021,"cram","a",2],["臺中市",2021,"home","a",7],["臺中市",2021,"kg","a",1],["臺中市",2021,"school","a",1],["臺中市",2022,"cram","a",3],["臺中市",2022,"home","a",11],["臺中市",2022,"kg","a",6],["臺中市",2022,"school","a",7],["臺中市",2022,"tuoying","a",9],["臺中市",2022,"tuoying","n",8],["臺中市",2023,"home","a",3],["臺中市",2023,"tuoying","a",2],["臺中市",2023,"tuoying","n",2],["臺中市",2024,"after","n",7],["臺中市",2024,"cram","a",1],["臺中市",2024,"home","a",1],["臺中市",2024,"school","a",3],["臺中市",2024,"tuoying","n",1],["臺中市",2025,"after","n",3],["臺中市",2025,"cram","a",1],["臺中市",2025,"home","a",4],["臺中市",2025,"school","a",4],["臺中市",2025,"tuoying","a",3],["臺中市",2026,"cram","a",1],["臺中市",2026,"home","a",3],["臺中市",2026,"school","a",2],["臺北市",2015,"cram","a",1],["臺北市",2015,"home","a",1],["臺北市",2017,"kg","a",1],["臺北市",2017,"school","a",1],["臺北市",2017,"tuoying","n",1],["臺北市",2019,"after","a",1],["臺北市",2019,"cram","a",1],["臺北市",2019,"home","a",2],["臺北市",2019,"tuoying","a",8],["臺北市",2020,"home","a",1],["臺北市",2020,"kg","a",1],["臺北市",2020,"tuoying","a",6],["臺北市",2022,"home","a",1],["臺北市",2022,"kg","a",2],["臺北市",2022,"school","a",1],["臺北市",2023,"home","a",1],["臺北市",2023,"school","a",1],["臺北市",2024,"after","n",3],["臺北市",2024,"home","a",1],["臺北市",2024,"tuoying","a",1],["臺北市",2025,"after","n",40],["臺北市",2025,"home","a",1],["臺北市",2025,"school","a",3],["臺北市",2026,"after","n",5],["臺北市",2026,"school","a",1],["臺北市",2026,"tuoying","a",3],["臺南市",2014,"tuoying","n",1],["臺南市",2016,"tuoying","n",2],["臺南市",2017,"tuoying","n",2],["臺南市",2018,"tuoying","n",1],["臺南市",2020,"tuoying","n",1],["臺南市",2022,"home","n",1],["臺南市",2024,"home","a",1],["臺南市",2024,"home","n",2],["臺南市",2024,"tuoying","a",1],["臺南市",2026,"home","a",3],["臺東縣",2022,"home","a",1],["臺東縣",2023,"kg","a",1],["臺東縣",2023,"place","a",2],["臺東縣",2023,"school","a",2],["臺東縣",2024,"school","a",1],["臺東縣",2025,"kg","a",2],["花蓮縣",2017,"school","a",2],["花蓮縣",2021,"place","a",1],["苗栗縣",2025,"after","n",1],["苗栗縣",2026,"after","n",3],["金門縣",2024,"school","a",1],["金門縣",2025,"school","a",1],["雲林縣",2022,"cram","a",1],["雲林縣",2023,"tuoying","n",1],["雲林縣",2024,"after","a",1],["高雄市",2015,"home","n",1],["高雄市",2019,"after","n",3],["高雄市",2019,"home","n",3],["高雄市",2021,"after","a",1],["高雄市",2021,"home","a",1],["高雄市",2025,"home","a",2],["高雄市",2025,"tuoying","n",1],["高雄市",2026,"cram","a",1],["高雄市",2026,"home","a",1],["嘉義市",2022,"tuoying","n",1],["嘉義縣",2024,"school","a",1],["嘉義縣",2025,"place","a",1],["嘉義縣",2025,"school","a",3],["新竹市",2014,"tuoying","n",3],["新竹市",2015,"tuoying","n",1],["新竹市",2017,"tuoying","n",3],["新竹市",2019,"home","a",1],["新竹市",2022,"school","a",1],["新竹市",2026,"after","a",1],["新竹縣",2023,"after","a",1],["新竹縣",2023,"home","a",1],["新竹縣",2023,"kg","a",1],["新竹縣",2023,"place","a",1],["新竹縣",2023,"school","a",1],["新竹縣",2024,"school","a",2],["新竹縣",2024,"tuoying","a",3],["新竹縣",2025,"home","a",1],["新竹縣",2025,"school","a",4],["新竹縣",2025,"tuoying","a",1],["新竹縣",2026,"home","a",1],["新竹縣",2026,"school","a",3],["新竹縣",2026,"tuoying","a",1]],"kg":{"基隆市":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.1.0.0,0.3.1.0.0,4.0.2.1.1,13.1.2.0.3","臺北市":"0.0.0.0.0,0.0.3.0.0,0.0.1.0.0,7.3.4.0.3,19.17.27.1.2,41.23.34.0.4,32.12.26.1.23","新北市":"0.0.1.0.0,0.0.5.0.2,0.1.4.0.1,2.4.16.0.3,17.23.75.8.8,18.20.26.4.6,29.15.25.0.14","桃園市":"0.0.0.0.0,0.0.1.0.0,0.1.0.0.1,0.0.2.0.1,25.11.16.2.6,27.19.24.0.8,34.11.8.1.24","新竹市":"0.0.0.0.0,0.0.0.0.1,0.0.0.0.0,1.0.0.0.0,8.0.3.1.1,7.14.9.0.4,4.1.1.3.2","新竹縣":"0.0.0.0.1,0.0.0.0.2,0.0.0.0.2,0.3.5.0.3,5.4.5.2.0,5.6.3.2.0,10.5.11.0.2","苗栗縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,5.6.8.0.1,9.6.3.0.1,3.1.3.1.3","臺中市":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,1.2.3.0.1,12.14.36.2.8,10.4.9.1.0,27.11.13.2.15","彰化縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,1.0.1.0.0,4.0.5.1.3,12.8.24.1.8,12.15.18.1.10","南投縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.1.0,1.0.1.0.0,1.0.1.0.0,1.1.0.0.0","雲林縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,2.1.2.0.0,1.1.2.0.0,10.2.0.0.0","嘉義市":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,2.1.1.0.0,0.0.0.0.0,0.0.0.0.1","嘉義縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,3.1.3.0.1,3.0.4.0.1,3.0.1.0.0","臺南市":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.4,0.0.2.0.0,15.2.12.0.1,24.3.7.0.2,34.6.12.1.4","高雄市":"0.0.0.0.0,0.0.0.0.4,0.0.0.0.8,0.0.0.0.0,5.3.3.1.2,13.8.8.4.2,16.5.5.2.11","屏東縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.1.0.0.2,8.1.3.1.1,11.2.3.4.3","臺東縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.2.0.0,5.0.1.0.0,0.0.0.0.0","花蓮縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,2.0.0.0.0,6.1.4.0.3,5.4.3.1.1","宜蘭縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,3.1.1.3.0,3.1.4.0.0,3.1.0.0.2","澎湖縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.3.3.0.0,0.0.0.0.0","金門縣":"0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.0,0.0.0.0.1"}};
+const SETS=[
+ {k:'all',label:'全部場域',src:'all'},{k:'tuoying',label:'托嬰中心',src:'sfaa'},{k:'home',label:'居家托育（保母）',src:'sfaa'},{k:'kg',label:'幼兒園',src:'moe'},
+ {k:'after',label:'課後照顧（安親班）',src:'sfaa'},{k:'cram',label:'補習班',src:'sfaa'},{k:'school',label:'學校',src:'sfaa'},{k:'place',label:'安置機構',src:'sfaa'}];
+const SUB={sfaa:[['a','不當對待（虐待、傷害等）'],['n','其他違規（未立案、資格等）']],
+ moe:[['abuse','不當對待幼兒'],['staff','人員資格與備查'],['ratio','師生比、編班、超收'],['fee','收費'],['other','其他']]};
+const YR={sfaa:[2013,2026],moe:[2020,2026],all:[2013,2026]};
+SUB.all=SETS.filter(x=>x.k!=='all').map(x=>[x.k,x.label]);
+let fAb=false;
+const MOEY=[2020,2021,2022,2023,2024,2025,2026];
+let fset='all', fsub={}, fFrom=null, fTo=null;
+function fRows(){ // returns {city:{year:{sub:v}}}
+  const s=SETS.find(x=>x.k===fset), o={};
+  if(s.src==='all'){
+    FD.sfaa.forEach(([c,y,k,ab,v])=>{if(k==='kg'||(fAb&&ab!=='a'))return;const o2=((o[c]??={})[y]??={});o2[k]=(o2[k]||0)+v;});
+    for(const [c,str] of Object.entries(FD.kg)){str.split(',').forEach((ys,i)=>{const n=ys.split('.').map(Number);const v=fAb?n[0]:n.reduce((a,b)=>a+b,0);if(v){const o2=((o[c]??={})[MOEY[i]]??={});o2.kg=(o2.kg||0)+v;}});}
+  }
+  else if(s.src==='sfaa'){FD.sfaa.forEach(([c,y,k,ab,v])=>{if(k!==fset)return;((o[c]??={})[y]??={})[ab]=v;});}
+  else{for(const [c,str] of Object.entries(FD.kg)){str.split(',').forEach((ys,i)=>{const n=ys.split('.').map(Number);SUB.moe.forEach(([k],j)=>{if(n[j])((o[c]??={})[MOEY[i]]??={})[k]=n[j];});});}}
+  return o;
+}
+function fControls(){
+  const s=SETS.find(x=>x.k===fset);
+  document.getElementById('f-set').innerHTML=SETS.map(x=>`<button data-k="${x.k}" aria-pressed="${x.k===fset}">${x.label}</button>`).join('');
+  document.querySelectorAll('#f-set button').forEach(b=>b.onclick=()=>{fset=b.dataset.k;fsub={};fFrom=fTo=null;fControls();fDraw();});
+  const subs=SUB[s.src]; if(!Object.keys(fsub).length) subs.forEach(([k])=>fsub[k]=true);
+  document.getElementById('f-sub').innerHTML=subs.map(([k,l],i)=>`<label class="chip"><input type="checkbox" id="fs-${k}" ${fsub[k]?'checked':''}><i style="background:var(--c${i+1})"></i>${l}</label>`).join('');
+  subs.forEach(([k])=>document.getElementById('fs-'+k).onchange=e=>{fsub[k]=e.target.checked;fDraw();});
+  const ab=document.getElementById('f-ab'); ab.hidden=s.src!=='all';
+  ab.innerHTML=`<button id="fab-all" aria-pressed="${!fAb}">全部違規</button><button id="fab-a" aria-pressed="${fAb}">只看不當對待</button>`;
+  document.getElementById('fab-all').onclick=()=>{fAb=false;fControls();fDraw();};
+  document.getElementById('fab-a').onclick=()=>{fAb=true;fControls();fDraw();};
+  document.querySelector('#f-sub').previousElementSibling.textContent=s.src==='all'?'納入場域':'違規類型';
+  const [a,b]=YR[s.src]; if(fFrom==null){fFrom=a;fTo=b;}
+  const opt=v=>Array.from({length:b-a+1},(_,i)=>a+i).map(y=>`<option value="${y}" ${y===v?'selected':''}>${y-1911} 年（${y}）</option>`).join('');
+  const f=document.getElementById('f-from'),t=document.getElementById('f-to'); f.innerHTML=opt(fFrom); t.innerHTML=opt(fTo);
+  f.onchange=()=>{fFrom=+f.value;if(fFrom>fTo){fTo=fFrom;t.value=fTo;}fDraw();};
+  t.onchange=()=>{fTo=+t.value;if(fTo<fFrom){fFrom=fTo;f.value=fFrom;}fDraw();};
+  const notes={all:'「全部場域」把托嬰中心、居家托育、課後照顧、補習班、學校、安置機構（社家署違反兒少法名單）和幼兒園（教育部教保裁罰名單）加在一起。兩份名單依不同法律裁罰，幼兒園只有 109 年（2020）以後的紀錄，所以較早年度的加總偏低。社家署名單中另有 21 筆涉及幼兒園的兒少法裁罰，可能和教育部名單是同一事件，為避免重複計算，加總時不納入。「只看不當對待」在社家署名單指第 49 條、第 83 條第 1 款，在教育部名單指不當對待幼兒類條文。115 年（2026）只統計到 11 月初。',
+   sfaa:'場域是依每筆裁罰的「事實摘要」文字判讀（例如寫明「托嬰中心」「居家托育人員」「保母」），摘要沒寫到場域的案件不會算進來，所以這裡是低估值。「不當對待」指違反兒少法第 49 條（虐待、傷害、其他不正當行為等）或第 83 條第 1 款；「其他違規」主要是未立案經營。名單只包含依法公布、仍在網站上的紀錄，2019 年以前的紀錄明顯較少。115 年（2026）只統計到 11 月初。',
+   moe:'名單只包含仍在公布期間的裁罰，舊紀錄會下架。對照教育部官方統計，違法對待幼兒的裁罰人數 112 年為 90 人、113 年 177 人、114 年 262 人，名單中「不當對待幼兒」筆數分別只有 12、128、197 筆，越早的年度缺漏越多。112 年 3 月起法規擴大不當對待的範圍，前後年度不宜直接比較。違規類型是依「違反之規定」條文文字分類；115 年（2026）只統計到 11 月初。'};
+  document.getElementById('f-note').textContent=notes[s.src];
+}
+function fDraw(){
+  const s=SETS.find(x=>x.k===fset), subs=SUB[s.src].map((x,i)=>[...x,i+1]).filter(([k])=>fsub[k]);
+  const R=fRows(), inR=y=>y>=fFrom&&y<=fTo;
+  const rows=GEO.map(c=>{const seg=subs.map(([k,l,slot])=>{let v=0;for(const [y,o] of Object.entries(R[c]||{}))if(inR(+y))v+=o[k]||0;return {k,l,slot,v};});return {c,seg,tot:seg.reduce((a,b)=>a+b.v,0)};}).sort((a,b)=>b.tot-a.tot);
+  const nz=rows.filter(r=>r.tot>0), zeros=rows.length-nz.length, total=rows.reduce((a,b)=>a+b.tot,0);
+  document.getElementById('f-total').textContent=`全國合計 ${fmt(total)} 筆`;
+  // bar chart
+  const svg=document.getElementById('f-bar'), W=560, rh=24, m={l:64,r:44,t:6,b:zeros?26:8}, H=m.t+m.b+Math.max(nz.length,1)*rh;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const mx=Math.max(1,...nz.map(r=>r.tot)), x=v=>(W-m.l-m.r)*v/mx;
+  let g='';
+  if(!nz.length) g=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="13" fill="var(--muted)">這個條件下沒有紀錄</text>`;
+  nz.forEach((r,i)=>{const y=m.t+i*rh; let cx=m.l;
+    g+=`<text x="${m.l-8}" y="${y+rh/2+4}" text-anchor="end" font-size="12.5" fill="var(--fg)">${r.c}</text>`;
+    r.seg.filter(sg=>sg.v).forEach((sg,j,arr)=>{const w=x(sg.v);g+=`<rect class="fb" data-t="${r.c}｜${sg.l}：${sg.v} 筆" x="${cx}" y="${y+4}" width="${Math.max(w-(j<arr.length-1?2:0),1)}" height="${rh-8}" rx="${j===arr.length-1?3:0}" fill="var(--c${sg.slot})"/>`;cx+=w;});
+    g+=`<text x="${cx+6}" y="${y+rh/2+4}" font-size="12" fill="var(--fg2)">${r.tot}</text>`;});
+  if(zeros) g+=`<text x="${m.l}" y="${H-8}" font-size="11.5" fill="var(--muted)">其餘 ${zeros} 個縣市在此期間為 0 筆</text>`;
+  svg.innerHTML=g;
+  // yearly
+  const ys=Array.from({length:fTo-fFrom+1},(_,i)=>fFrom+i);
+  const yv=ys.map(y=>subs.map(([k,l,slot])=>{let v=0;for(const c in R)v+=(R[c][y]||{})[k]||0;return {k,l,slot,v};}));
+  const ysvg=document.getElementById('f-year'), YW=380, YH=240, ym={l:36,r:8,t:16,b:36};
+  ysvg.setAttribute('viewBox',`0 0 ${YW} ${YH}`);
+  const ymx=Math.max(1,...yv.map(a=>a.reduce((s,b)=>s+b.v,0)));
+  const step=[1,2,5,10,20,25,50,100,200].find(s=>ymx/s<=4)||200, top=Math.ceil(ymx/step)*step;
+  const bw=(YW-ym.l-ym.r)/ys.length, yy=v=>ym.t+(YH-ym.t-ym.b)*(1-v/top);
+  let q='';
+  for(let v=0;v<=top;v+=step)q+=`<line x1="${ym.l}" x2="${YW-ym.r}" y1="${yy(v)}" y2="${yy(v)}" stroke="var(--line)"/><text x="${ym.l-6}" y="${yy(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`;
+  ys.forEach((y,i)=>{const x0=ym.l+i*bw+bw*0.18, w=bw*0.64; let acc=0; const segs=yv[i].filter(s=>s.v);
+    segs.forEach((sg,j)=>{const y1=yy(acc+sg.v), y0=yy(acc); q+=`<rect class="fb" data-t="${y-1911} 年（${y}）｜${sg.l}：${sg.v} 筆" x="${x0}" y="${y1}" width="${w}" height="${Math.max(y0-y1-(j<segs.length-1?2:0),1)}" rx="${j===segs.length-1?2:0}" fill="var(--c${sg.slot})"/>`; acc+=sg.v;});
+    if(ys.length<=10||i%2===0||i===ys.length-1) q+=`<text x="${x0+w/2}" y="${YH-ym.b+15}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${y-1911}</text>`;
+  });
+  q+=`<text x="${YW-ym.r}" y="${YH-6}" text-anchor="end" font-size="10.5" fill="var(--muted)">民國年；115 年只到 11 月初</text>`;
+  ysvg.innerHTML=q;
+  document.querySelectorAll('#fcounty .fb').forEach(el=>{el.addEventListener('mousemove',e=>showTip(e,el.dataset.t));el.addEventListener('mouseleave',hideTip);});
+}
+fControls(); fDraw();
+
+</script>
